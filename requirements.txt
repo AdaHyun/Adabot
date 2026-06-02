@@ -1,0 +1,19 @@
+# Web UI：用于构建 PC / 手机可访问的交互页面
+gradio>=4.44.0
+
+# OpenAI 兼容 SDK：用于调用 Qwen3.6-27B 或兼容服务
+openai>=1.40.0
+
+# 图片处理：Gradio 图片输入和 OCR 前处理会用到
+Pillow>=10.0.0
+numpy==1.26.4
+
+
+# 中文 OCR：首次使用会下载或加载 OCR 模型
+paddleocr>=2.7.0
+paddlepaddle==2.6.2
+
+# 通用 HTTP 能力：后续扩展 BAAI SDK 或自定义模型服务时可复用
+requests>=2.31.0
+
+matplotlib>=3.4,!=3.6.1
