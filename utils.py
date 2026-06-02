@@ -40,6 +40,12 @@ UPLOAD_DIR = ARTIFACT_DIR / "uploads"
 
 # OCR 引擎全局缓存，避免每次上传图片都重新加载模型。
 _OCR_ENGINE = None
+# 本地 PaddleOCR 模型目录
+OCR_MODEL_ROOT = PROJECT_ROOT / "models" / "paddleocr"
+
+OCR_DET_MODEL_DIR = OCR_MODEL_ROOT / "det" /  "ch" / "ch_PP-OCRv4_det_infer"
+OCR_REC_MODEL_DIR = OCR_MODEL_ROOT / "rec" /  "ch" / "ch_PP-OCRv4_rec_infer"
+OCR_CLS_MODEL_DIR = OCR_MODEL_ROOT / "cls" / "ch_ppocr_mobile_v2.0_cls_infer"
 
 
 def ensure_project_dirs() -> None:
@@ -207,11 +213,32 @@ def get_ocr_engine():
     except RuntimeError as exc:
         raise RuntimeError(f"PaddleOCR 依赖加载失败：{exc}") from exc
 
-    # 兼容 PaddleOCR 2.x / 3.x。部分版本不接受 use_angle_cls 时会自动降级。
+    missing_dirs = [
+        path for path in [OCR_DET_MODEL_DIR, OCR_REC_MODEL_DIR, OCR_CLS_MODEL_DIR]
+        if not path.exists()
+    ]
+
+    if missing_dirs:
+        missing_text = "\n".join(str(path) for path in missing_dirs)
+        raise RuntimeError(f"PaddleOCR 本地模型目录不存在，请检查模型复制位置：\n{missing_text}")
+
     try:
-        _OCR_ENGINE = PaddleOCR(use_angle_cls=True, lang="ch")
+        _OCR_ENGINE = PaddleOCR(
+            use_angle_cls=True,
+            lang="ch",
+            det_model_dir=str(OCR_DET_MODEL_DIR),
+            rec_model_dir=str(OCR_REC_MODEL_DIR),
+            cls_model_dir=str(OCR_CLS_MODEL_DIR),
+            show_log=True,
+        )
     except Exception:
-        _OCR_ENGINE = PaddleOCR(lang="ch")
+        _OCR_ENGINE = PaddleOCR(
+            lang="ch",
+            det_model_dir=str(OCR_DET_MODEL_DIR),
+            rec_model_dir=str(OCR_REC_MODEL_DIR),
+            cls_model_dir=str(OCR_CLS_MODEL_DIR),
+            show_log=True,
+        )
 
     return _OCR_ENGINE
 
