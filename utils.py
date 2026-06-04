@@ -387,7 +387,7 @@ def call_qwen_model(
     prompt: str,
     images: List[Any] | None = None,
     temperature: float = 0.7,
-    max_tokens: int = 2048,
+    max_tokens: int = 8192,
 ) -> str:
     """
     调用硅基流动或其他 OpenAI 兼容模型服务。
@@ -456,7 +456,7 @@ def call_qwen_model_stream(
     prompt: str,
     images: List[Any] | None = None,
     temperature: float = 0.7,
-    max_tokens: int = 2048,
+    max_tokens: int = 8192,
 ) -> Iterator[str]:
     """Stream model output through the OpenAI-compatible chat completions API."""
     api_key = os.getenv("QWEN_API_KEY", "").strip()

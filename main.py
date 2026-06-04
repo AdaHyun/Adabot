@@ -11,6 +11,7 @@ Adabot 项目入口：
 
 from __future__ import annotations
 
+from pyexpat.errors import messages
 import time
 from typing import Any, Iterator, Tuple
 
@@ -154,7 +155,7 @@ def run_agent_sync_legacy(user_text: str, image_state: list[Any] | None, enable_
     return answer, ocr_display, debug_info
 
 
-def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -> Iterator[Tuple[str, str, str]]:
+def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -> Iterator[Tuple[list[dict[str, str]], str, str]]:
     """Agent main flow: log early, then stream model output to the page."""
     ensure_project_dirs()
 
@@ -166,14 +167,28 @@ def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -
     image_count = len(images)
     has_images = image_count > 0
 
+    messages = [
+        {
+            "role": "user",
+            "content": clean_user_text or f"用户上传了 {image_count} 张图片。"
+        },
+        {
+            "role": "assistant",
+            "content": ""
+        }
+    ]
+
     if not clean_user_text and not has_images:
-        yield "请输入 Text Description，或添加 1-3 张包含题目的图片。", "", "未调用 Skill；未写入日志。"
+        messages[-1]["content"] = "请输入 Text Description，或添加 1-3 张包含题目的图片。"
+        yield messages, "", "未调用 Skill；未写入日志。"
         return
 
     ocr_text = ""
     ocr_error = ""
     if enable_ocr and has_images:
-        yield "正在识别图片文字...", "", "OCR 处理中，稍后会开始调用模型。"
+        messages[-1]["content"] = "正在识别图片文字..."
+        yield messages, "", "OCR 处理中，稍后会开始调用模型。"
+
         ocr_text, ocr_error = extract_text_from_images(images)
         if not ocr_text and not ocr_error:
             ocr_error = "OCR 已启用，但未识别到文字。"
@@ -219,7 +234,8 @@ def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -
         f"日志文件：{request_log_path}\n"
         "状态：模型流式输出中"
     )
-    yield "正在调用模型...", ocr_display, debug_info
+    messages[-1]["content"] = "正在调用模型..."
+    yield messages, ocr_display, debug_info
 
     answer_parts: list[str] = []
     last_yield_time = time.monotonic()
@@ -315,10 +331,11 @@ def build_ui() -> gr.Blocks:
 
         submit_btn = gr.Button("launch", variant="primary")
 
-        answer = gr.Markdown(
+        answer = gr.Chatbot(
             label="Agent 回答",
-            latex_delimiters=LATEX_DELIMITERS,
-            line_breaks=True,
+            type="messages",
+            height=520,
+            show_copy_button=True,
         )
         ocr_output = gr.Textbox(label="OCR 状态 / 识别结果", lines=6, visible=False)
         debug_output = gr.Textbox(label="调试信息", lines=5)
