@@ -11,17 +11,28 @@ Adabot 项目入口：
 
 from __future__ import annotations
 
-from pyexpat.errors import messages
+import os
+import socket
 import time
 from typing import Any, Iterator, Tuple
 
 import gradio as gr
 
+from memory_manager import (
+    DEFAULT_USER_ID,
+    append_turn_to_history,
+    extract_and_save_memories,
+    format_chat_history,
+    retrieve_memory_context,
+    trim_chat_history,
+)
 from skills import list_skills, run_selected_skills
 from utils import (
     build_gallery_items,
     build_prompt,
+    call_qwen_model,
     call_qwen_model_stream,
+    configure_utf8_runtime,
     ensure_project_dirs,
     extract_text_from_images,
     normalize_markdown_math,
@@ -37,6 +48,19 @@ LATEX_DELIMITERS = [
     {"left": "\\(", "right": "\\)", "display": False},
     {"left": "\\[", "right": "\\]", "display": True},
 ]
+
+
+def find_available_port(start_port: int, max_attempts: int = 20) -> int:
+    """Find an available local TCP port, starting from the preferred port."""
+    for port in range(start_port, start_port + max_attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind(("0.0.0.0", port))
+            except OSError:
+                continue
+            return port
+    raise OSError(f"Cannot find empty port in range: {start_port}-{start_port + max_attempts - 1}")
 
 
 def toggle_ocr_output(enable_ocr: bool):
@@ -55,7 +79,7 @@ def add_single_image(image: Any, current_images: list[Any] | None):
         images.append(save_image_to_artifacts(image))
 
     images = images[:3]
-    return images, build_gallery_items(images), gr.update(value=None)
+    return images, build_gallery_items(images), gr.update(value=None), None
 
 
 def add_batch_images(files: Any, current_images: list[Any] | None):
@@ -67,12 +91,49 @@ def add_batch_images(files: Any, current_images: list[Any] | None):
     images = normalize_uploaded_files(current_images)
     images.extend(normalize_uploaded_files(files))
     images = images[:3]
-    return images, build_gallery_items(images)
+    return images, build_gallery_items(images), None
 
 
 def clear_images():
     """清空当前已添加图片。"""
-    return [], []
+    return [], [], None
+
+
+def select_image(evt: gr.SelectData):
+    """记录 Gallery 中当前选中的图片序号。"""
+    return evt.index
+
+
+def delete_selected_image(current_images: list[Any] | None, selected_index: int | None):
+    """删除 Gallery 中选中的单张图片。"""
+    images = normalize_uploaded_files(current_images)
+    if selected_index is not None and 0 <= selected_index < len(images):
+        images.pop(selected_index)
+    return images, build_gallery_items(images), None
+
+
+def mark_generation_stopped(
+    current_messages: list[dict[str, str]] | None,
+    current_debug_info: str | None,
+):
+    """停止生成后同步更新界面，避免状态一直停留在“模型流式输出中”。"""
+    messages = list(current_messages or [])
+    stop_notice = "\n\n> 模型已停止思考。"
+
+    if messages and messages[-1].get("role") == "assistant":
+        content = messages[-1].get("content") or ""
+        if "模型已停止思考" not in content:
+            messages[-1] = {**messages[-1], "content": f"{content}{stop_notice}".strip()}
+    else:
+        messages.append({"role": "assistant", "content": "模型已停止思考。"})
+
+    debug_info = current_debug_info or ""
+    if "状态：模型流式输出中" in debug_info:
+        debug_info = debug_info.replace("状态：模型流式输出中", "状态：模型已停止")
+    elif "状态：模型已停止" not in debug_info:
+        debug_info = f"{debug_info}\n状态：模型已停止".strip()
+
+    return messages, debug_info
 
 
 def run_agent_sync_legacy(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -> Tuple[str, str, str]:
@@ -155,11 +216,17 @@ def run_agent_sync_legacy(user_text: str, image_state: list[Any] | None, enable_
     return answer, ocr_display, debug_info
 
 
-def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -> Iterator[Tuple[list[dict[str, str]], str, str]]:
+def run_agent(
+    user_text: str,
+    image_state: list[Any] | None,
+    enable_ocr: bool,
+    chat_history_state: list[dict[str, str]] | None,
+) -> Iterator[Tuple[list[dict[str, str]], str, str, list[dict[str, str]]]]:
     """Agent main flow: log early, then stream model output to the page."""
     ensure_project_dirs()
 
     clean_user_text = (user_text or "").strip()
+    chat_history = trim_chat_history(chat_history_state)
     uploaded_images = normalize_uploaded_files(image_state)
     uploaded_image_count = len(uploaded_images)
 
@@ -180,14 +247,14 @@ def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -
 
     if not clean_user_text and not has_images:
         messages[-1]["content"] = "请输入 Text Description，或添加 1-3 张包含题目的图片。"
-        yield messages, "", "未调用 Skill；未写入日志。"
+        yield messages, "", "未调用 Skill；未写入日志。", chat_history
         return
 
     ocr_text = ""
     ocr_error = ""
     if enable_ocr and has_images:
         messages[-1]["content"] = "正在识别图片文字..."
-        yield messages, "", "OCR 处理中，稍后会开始调用模型。"
+        yield messages, "", "OCR 处理中，稍后会开始调用模型。", chat_history
 
         ocr_text, ocr_error = extract_text_from_images(images)
         if not ocr_text and not ocr_error:
@@ -198,12 +265,17 @@ def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -
     combined_text = "\n".join(part for part in [clean_user_text, ocr_text] if part).strip()
     skill_input = combined_text or f"用户上传了 {image_count} 张题目图片，请直接阅读图片并回答。"
     selected_skills, skill_context = run_selected_skills(skill_input)
+    memory_query = "\n".join(part for part in [clean_user_text, ocr_text, skill_context] if part).strip()
+    retrieved_memories, long_term_memory_text = retrieve_memory_context(DEFAULT_USER_ID, memory_query)
+    chat_history_text, history_turns = format_chat_history(chat_history)
 
     prompt = build_prompt(
         user_text=clean_user_text,
         ocr_text=ocr_text,
         skill_context=skill_context,
         image_count=image_count,
+        chat_history_text=chat_history_text,
+        long_term_memory_text=long_term_memory_text,
     )
 
     ocr_display = ocr_text
@@ -220,6 +292,20 @@ def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -
         "ocr_error": ocr_error,
         "selected_skills": selected_skills,
         "skill_context": skill_context,
+        "history_used": history_turns > 0,
+        "history_turns": history_turns,
+        "memory": {
+            "retrieved": [
+                {
+                    "id": item.get("id"),
+                    "content": item.get("content"),
+                    "memory_type": item.get("memory_type"),
+                    "score": item.get("score"),
+                }
+                for item in retrieved_memories
+            ],
+            "saved": [],
+        },
         "prompt": prompt,
     }
 
@@ -231,17 +317,19 @@ def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -
         f"忽略图片数：{max(uploaded_image_count - image_count, 0)}\n"
         f"OCR 启用：{'是' if enable_ocr else '否'}\n"
         f"已调用 Skill：{', '.join(selected_skills) if selected_skills else '无'}\n"
+        f"短期历史轮数：{history_turns}\n"
+        f"长期记忆命中：{len(retrieved_memories)}\n"
         f"日志文件：{request_log_path}\n"
         "状态：模型流式输出中"
     )
     messages[-1]["content"] = "正在调用模型..."
-    yield messages, ocr_display, debug_info
+    yield messages, ocr_display, debug_info, chat_history
 
     answer_parts: list[str] = []
     last_yield_time = time.monotonic()
     last_yield_length = 0
-    min_yield_interval = 0.18
-    min_yield_chars = 24
+    min_yield_interval = 0.5
+    min_yield_chars = 80
     try:
         for delta in call_qwen_model_stream(prompt=prompt, images=images if has_images else None):
             answer_parts.append(delta)
@@ -250,21 +338,44 @@ def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -
             enough_time = now - last_yield_time >= min_yield_interval
             enough_text = len(raw_answer) - last_yield_length >= min_yield_chars
             if enough_time or enough_text:
-                yield raw_answer, ocr_display, debug_info
+                messages[-1]["content"] = raw_answer
+                yield messages, ocr_display, debug_info, chat_history
                 last_yield_time = now
                 last_yield_length = len(raw_answer)
 
         final_answer = normalize_markdown_math("".join(answer_parts))
+        messages[-1]["content"] = final_answer
+        saved_memories = extract_and_save_memories(
+            user_id=DEFAULT_USER_ID,
+            user_text=clean_user_text,
+            assistant_answer=final_answer,
+            source="chat",
+        )
+        updated_history = append_turn_to_history(chat_history, clean_user_text, final_answer, image_count=image_count)
+        completion_record = {
+            **base_record,
+            "memory": {
+                **base_record["memory"],
+                "saved": [
+                    {
+                        "id": item.get("id"),
+                        "content": item.get("content"),
+                        "memory_type": item.get("memory_type"),
+                    }
+                    for item in saved_memories
+                ],
+            },
+            "model_answer": final_answer,
+        }
         completion_log_path = write_log(
             {
                 "event": "model_completed",
-                **base_record,
-                "model_answer": final_answer,
+                **completion_record,
             }
         )
         final_debug_info = debug_info.replace("状态：模型流式输出中", "状态：模型调用完成")
-        final_debug_info = f"{final_debug_info}\n完成日志：{completion_log_path}"
-        yield final_answer, ocr_display, final_debug_info
+        final_debug_info = f"{final_debug_info}\n新增长期记忆：{len(saved_memories)}\n完成日志：{completion_log_path}"
+        yield messages, ocr_display, final_debug_info, updated_history
     except Exception as exc:
         partial_answer = normalize_markdown_math("".join(answer_parts))
         error_log_path = write_log(
@@ -275,13 +386,16 @@ def run_agent(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -
                 "error": str(exc),
             }
         )
-        yield partial_answer or f"模型调用失败：{exc}", ocr_display, f"{debug_info}\n状态：模型调用失败\n错误日志：{error_log_path}"
+        messages[-1]["content"] = partial_answer or f"模型调用失败：{exc}"
+        yield messages, ocr_display, f"{debug_info}\n状态：模型调用失败\n错误日志：{error_log_path}", chat_history
 
 
 def build_ui() -> gr.Blocks:
     """构建 Gradio 页面。"""
     with gr.Blocks(title="Adabot") as demo:
         image_state = gr.State([])
+        selected_image_index = gr.State(None)
+        chat_history_state = gr.State([])
 
         gr.Markdown("# Adabot")
         gr.Markdown(f"当前已注册 Skill：`{', '.join(list_skills())}`")
@@ -322,6 +436,7 @@ def build_ui() -> gr.Blocks:
                         type="filepath",
                         size="sm",
                     )
+                    delete_btn = gr.Button("删除选中图片", size="sm")
                     clear_btn = gr.Button("清空图片", size="sm")
 
         enable_ocr = gr.Checkbox(
@@ -329,13 +444,21 @@ def build_ui() -> gr.Blocks:
             value=False,
         )
 
-        submit_btn = gr.Button("launch", variant="primary")
+        with gr.Row():
+            submit_btn = gr.Button("launch", variant="primary")
+            stop_btn = gr.Button("停止生成", variant="stop")
 
+        # Gradio 6.x 的 Chatbot 默认接收 messages 格式，不再支持 type="messages"。
+        # 复制按钮也改为通过 buttons 配置，避免旧参数在 6.x 中启动失败。
         answer = gr.Chatbot(
             label="Agent 回答",
-            type="messages",
             height=520,
-            show_copy_button=True,
+            buttons=["copy", "copy_all"],
+            # Chatbot 默认也会渲染 Markdown，但公式分隔符需要显式传入。
+            # 否则模型输出的 $...$、$$...$$、\(...\)、\[...\] 容易显示成原始文本。
+            latex_delimiters=LATEX_DELIMITERS,
+            render_markdown=True,
+            line_breaks=True,
         )
         ocr_output = gr.Textbox(label="OCR 状态 / 识别结果", lines=6, visible=False)
         debug_output = gr.Textbox(label="调试信息", lines=5)
@@ -343,19 +466,31 @@ def build_ui() -> gr.Blocks:
         image_input.change(
             fn=add_single_image,
             inputs=[image_input, image_state],
-            outputs=[image_state, image_preview, image_input],
+            outputs=[image_state, image_preview, image_input, selected_image_index],
         )
 
         batch_upload.upload(
             fn=add_batch_images,
             inputs=[batch_upload, image_state],
-            outputs=[image_state, image_preview],
+            outputs=[image_state, image_preview, selected_image_index],
+        )
+
+        image_preview.select(
+            fn=select_image,
+            inputs=[],
+            outputs=[selected_image_index],
+        )
+
+        delete_btn.click(
+            fn=delete_selected_image,
+            inputs=[image_state, selected_image_index],
+            outputs=[image_state, image_preview, selected_image_index],
         )
 
         clear_btn.click(
             fn=clear_images,
             inputs=[],
-            outputs=[image_state, image_preview],
+            outputs=[image_state, image_preview, selected_image_index],
         )
 
         enable_ocr.change(
@@ -364,27 +499,39 @@ def build_ui() -> gr.Blocks:
             outputs=[ocr_output],
         )
 
-        submit_btn.click(
+        submit_event = submit_btn.click(
             fn=run_agent,
-            inputs=[user_text, image_state, enable_ocr],
-            outputs=[answer, ocr_output, debug_output],
+            inputs=[user_text, image_state, enable_ocr, chat_history_state],
+            outputs=[answer, ocr_output, debug_output, chat_history_state],
         )
 
-        user_text.submit(
+        enter_event = user_text.submit(
             fn=run_agent,
-            inputs=[user_text, image_state, enable_ocr],
-            outputs=[answer, ocr_output, debug_output],
+            inputs=[user_text, image_state, enable_ocr, chat_history_state],
+            outputs=[answer, ocr_output, debug_output, chat_history_state],
+        )
+
+        # Gradio 会取消 still running 的流式事件；这里同时更新 UI 状态。
+        stop_btn.click(
+            fn=mark_generation_stopped,
+            inputs=[answer, debug_output],
+            outputs=[answer, debug_output],
+            cancels=[submit_event, enter_event],
         )
 
     return demo
 
 
 if __name__ == "__main__":
+    configure_utf8_runtime()
     ensure_project_dirs()
+    preferred_port = int(os.getenv("GRADIO_SERVER_PORT", "7861"))
+    server_port = find_available_port(preferred_port)
     app = build_ui()
     app.queue()
     app.launch(
         server_name="0.0.0.0",
-        server_port=7861,
+        server_port=server_port,
+        # share=True
         share=False
     )

@@ -15,6 +15,7 @@ import base64
 import json
 import os
 import re
+import sys
 import uuid
 from datetime import datetime
 from io import BytesIO
@@ -46,6 +47,23 @@ OCR_MODEL_ROOT = PROJECT_ROOT / "models" / "paddleocr"
 OCR_DET_MODEL_DIR = OCR_MODEL_ROOT / "det" /  "ch" / "ch_PP-OCRv4_det_infer"
 OCR_REC_MODEL_DIR = OCR_MODEL_ROOT / "rec" /  "ch" / "ch_PP-OCRv4_rec_infer"
 OCR_CLS_MODEL_DIR = OCR_MODEL_ROOT / "cls" / "ch_ppocr_mobile_v2.0_cls_infer"
+
+
+def configure_utf8_runtime() -> None:
+    """Keep Windows console output from corrupting Chinese text at runtime."""
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    local_no_proxy = "localhost,127.0.0.1,0.0.0.0"
+    for key in ("NO_PROXY", "no_proxy"):
+        current = os.environ.get(key, "")
+        if "localhost" not in current:
+            os.environ[key] = f"{current},{local_no_proxy}".strip(",")
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except (ValueError, OSError):
+                pass
 
 
 def ensure_project_dirs() -> None:
@@ -90,7 +108,7 @@ def normalize_markdown_math(text: str) -> str:
     # 如果某一行只有奇数个 $，通常说明漏了结尾 $，在行尾补齐。
     fixed_lines: List[str] = []
     for line in normalized.splitlines():
-        if line.count("$") % 2 == 1:
+        if line.count("$") % 2 == 1 and "$env:" not in line:
             line = f"{line}$"
         fixed_lines.append(line)
     normalized = "\n".join(fixed_lines)
@@ -346,7 +364,14 @@ def extract_text_from_images(images: List[Any]) -> tuple[str, str]:
     return "\n\n".join(text_blocks), "\n".join(status_blocks)
 
 
-def build_prompt(user_text: str, ocr_text: str, skill_context: str, image_count: int = 0) -> str:
+def build_prompt(
+    user_text: str,
+    ocr_text: str,
+    skill_context: str,
+    image_count: int = 0,
+    chat_history_text: str = "",
+    long_term_memory_text: str = "",
+) -> str:
     """
     构建最终发送给模型的 prompt。
 
@@ -370,14 +395,24 @@ def build_prompt(user_text: str, ocr_text: str, skill_context: str, image_count:
 5. 如果 OCR 文本和图片不一致，请以图片内容为准，并说明 OCR 可能有误。
 6. 不编造题目缺失条件；条件不足时先说明，再给出可行解法。
 
-【用户文本输入】
-{user_text or "无"}
+【用户长期记忆】
+以下是从历史中检索到的、可能与当前问题相关的信息。
+如果相关，可以参考；如果不相关，不要强行使用。
+{long_term_memory_text or "无"}
 
-【OCR 辅助文本】
+【最近对话历史】
+以下是当前会话的最近对话历史，仅用于理解上下文。
+如果历史和当前问题无关，不要强行使用。
+{chat_history_text or "无"}
+
+【OCR 识别结果】
 {ocr_text or "未启用或未识别到文本"}
 
-【已调用 Skill 提供的辅助策略】
+【当前 Skill】
 {skill_context or "无"}
+
+【当前用户问题】
+{user_text or "无"}
 
 请基于以上信息给出清晰、可执行、适合备考复习的回答。 /no_think
 """
@@ -526,7 +561,25 @@ def write_log(record: Dict[str, Any]) -> Path:
     }
     log_path = LOG_DIR / f"agent_{datetime.now().strftime('%Y%m%d')}.jsonl"
 
-    with log_path.open("a", encoding="utf-8") as f:
+    with log_path.open("a", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(record_with_time, ensure_ascii=False) + "\n")
 
     return log_path
+
+
+def read_jsonl(path: Path) -> List[Dict[str, Any]]:
+    """Read JSONL with explicit UTF-8 for future memory/log reuse."""
+    if not path.exists():
+        return []
+
+    records: List[Dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            records.append(json.loads(line))
+    return records
+
+
+configure_utf8_runtime()

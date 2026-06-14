@@ -1,0 +1,19 @@
+本次主要改动：
+修复/加固编码链路：新增运行期 UTF-8 设置和 NO_PROXY 本机回环设置，日志仍用 encoding="utf-8" + ensure_ascii=False 写入；新增 UTF-8 JSONL 读取函数。
+已把现有日志备份到 logs_backup。
+新增短期会话记忆：chat_history_state = gr.State([])，最多保留最近 6 轮，prompt 中会注入最近对话历史。
+新增长期记忆 v1：memory_store.py：封装 SQLite + Chroma，提供 add_memory/search_memory/list_memory/delete_memory。
+memory_manager.py：规则判断什么值得记，避免普通闲聊污染 memory。
+运行时目录：memory。
+
+更新 utils.py 的 prompt 结构：长期记忆 → 最近对话历史 → OCR → Skill → 当前问题。
+更新 main.py 主流程：检索 memory、注入 prompt、流式输出后保存长期记忆、更新短期 history、记录 memory 调试字段。
+更新 requirements.txt，加入 chromadb>=0.5.0。
+验证结果：
+python -m compileall main.py utils.py skills.py memory_store.py memory_manager.py 通过。
+短期历史测试通过：第二轮日志中 history_used: true，prompt 内包含上一轮的 x^2 - 5x + 6 = 0。
+长期记忆测试通过：保存项目记忆后，下一轮查询命中 长期记忆命中：1。
+污染测试通过：哈哈今天有点困 不会保存为长期 memory。
+当前 memory 库里已清空我测试写入的记忆，default_user 和 test_user 都是 0 条。
+Gradio 页面 HTTP 探测成功：status=200。
+注意：我安装了运行主流程需要的依赖子集 gradio/openai/Pillow/numpy/chromadb，没有额外安装较重的 paddleocr/paddlepaddle。如果要启用本地 OCR，需要再按 requirements.txt 安装 PaddleOCR 相关依赖。
