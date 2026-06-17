@@ -1,0 +1,8 @@
+subject: 实验复现
+syllabus_id: postgraduate_experiment_reproduction
+nodes:
+  - {id: pge_01, name: 环境配置}
+  - {id: pge_02, name: 数据集处理}
+  - {id: pge_03, name: 训练脚本}
+  - {id: pge_04, name: 指标复现}
+  - {id: pge_05, name: 报错调试}

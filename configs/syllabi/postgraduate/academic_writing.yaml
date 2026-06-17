@@ -1,0 +1,8 @@
+subject: 学术写作
+syllabus_id: postgraduate_academic_writing
+nodes:
+  - {id: pga_01, name: 摘要}
+  - {id: pga_02, name: 引言}
+  - {id: pga_03, name: 方法描述}
+  - {id: pga_04, name: 实验结果}
+  - {id: pga_05, name: 讨论与结论}

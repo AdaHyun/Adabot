@@ -1,0 +1,25 @@
+subject: 高等数学
+syllabus_id: kaoyan_advanced_math
+nodes:
+  - id: am_01
+    name: 函数极限连续
+    children:
+      - {id: am_01_01, name: 函数}
+      - {id: am_01_02, name: 极限}
+      - {id: am_01_03, name: 连续}
+  - id: am_02
+    name: 一元函数微分学
+    children:
+      - {id: am_02_01, name: 导数}
+      - {id: am_02_02, name: 微分}
+      - {id: am_02_03, name: 中值定理}
+  - id: am_03
+    name: 一元函数积分学
+    children:
+      - {id: am_03_01, name: 不定积分}
+      - {id: am_03_02, name: 定积分}
+      - {id: am_03_03, name: 反常积分}
+  - {id: am_04, name: 多元函数微分学}
+  - {id: am_05, name: 重积分}
+  - {id: am_06, name: 无穷级数}
+  - {id: am_07, name: 微分方程}

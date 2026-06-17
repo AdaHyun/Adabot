@@ -1,0 +1,10 @@
+subject: 数学
+syllabus_id: gaokao_math
+nodes:
+  - {id: gkm_01, name: 函数}
+  - {id: gkm_02, name: 三角函数}
+  - {id: gkm_03, name: 数列}
+  - {id: gkm_04, name: 立体几何}
+  - {id: gkm_05, name: 解析几何}
+  - {id: gkm_06, name: 导数}
+  - {id: gkm_07, name: 概率统计}

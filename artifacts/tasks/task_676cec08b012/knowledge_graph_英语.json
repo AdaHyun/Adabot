@@ -1,0 +1,110 @@
+{
+  "task_id": "task_676cec08b012",
+  "task_name": "2027考研机械",
+  "subject": "英语",
+  "updated_at": "2026-06-17T09:59:23",
+  "nodes": [
+    {
+      "node_id": "ke_01",
+      "title": "词汇",
+      "path": [
+        "英语",
+        "词汇"
+      ],
+      "parent_id": "kaoyan_english",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "ke_02",
+      "title": "长难句",
+      "path": [
+        "英语",
+        "长难句"
+      ],
+      "parent_id": "kaoyan_english",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "ke_03",
+      "title": "阅读理解",
+      "path": [
+        "英语",
+        "阅读理解"
+      ],
+      "parent_id": "kaoyan_english",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "ke_04",
+      "title": "翻译",
+      "path": [
+        "英语",
+        "翻译"
+      ],
+      "parent_id": "kaoyan_english",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "ke_05",
+      "title": "小作文",
+      "path": [
+        "英语",
+        "小作文"
+      ],
+      "parent_id": "kaoyan_english",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "ke_06",
+      "title": "大作文",
+      "path": [
+        "英语",
+        "大作文"
+      ],
+      "parent_id": "kaoyan_english",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    }
+  ]
+}

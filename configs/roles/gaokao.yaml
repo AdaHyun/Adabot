@@ -1,0 +1,5 @@
+role_id: gaokao
+role_name: 高考
+default_answer_style: 基础清晰、题型导向、适合高中生理解
+default_subjects: [数学, 英语, 物理, 化学, 语文]
+default_skills: [math, english, learning_profile, mistake_book, review_planner]

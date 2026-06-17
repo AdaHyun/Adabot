@@ -1,0 +1,229 @@
+{
+  "task_id": "task_676cec08b012",
+  "task_name": "2027考研机械",
+  "subject": "机械原理",
+  "updated_at": "2026-06-17T09:59:23",
+  "nodes": [
+    {
+      "node_id": "mp_01",
+      "title": "平面机构的结构分析",
+      "path": [
+        "机械原理",
+        "平面机构的结构分析"
+      ],
+      "parent_id": "kaoyan_mechanical_principles",
+      "children": [
+        "mp_01_01",
+        "mp_01_02",
+        "mp_01_03",
+        "mp_01_04",
+        "mp_01_05"
+      ],
+      "basic_framework": [
+        "基本概念与自由度计算",
+        "机构组成",
+        "运动副",
+        "机构运动简图",
+        "机构具有确定运动的条件"
+      ],
+      "mastery_status": "已接触",
+      "question_count": 1,
+      "wrong_question_count": 0,
+      "last_touched_at": "2026-06-17T09:59:23",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_01_01",
+      "title": "基本概念与自由度计算",
+      "path": [
+        "机械原理",
+        "平面机构的结构分析",
+        "基本概念与自由度计算"
+      ],
+      "parent_id": "mp_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "已接触",
+      "question_count": 1,
+      "wrong_question_count": 0,
+      "last_touched_at": "2026-06-17T09:13:53",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_01_02",
+      "title": "机构组成",
+      "path": [
+        "机械原理",
+        "平面机构的结构分析",
+        "机构组成"
+      ],
+      "parent_id": "mp_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_01_03",
+      "title": "运动副",
+      "path": [
+        "机械原理",
+        "平面机构的结构分析",
+        "运动副"
+      ],
+      "parent_id": "mp_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_01_04",
+      "title": "机构运动简图",
+      "path": [
+        "机械原理",
+        "平面机构的结构分析",
+        "机构运动简图"
+      ],
+      "parent_id": "mp_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_01_05",
+      "title": "机构具有确定运动的条件",
+      "path": [
+        "机械原理",
+        "平面机构的结构分析",
+        "机构具有确定运动的条件"
+      ],
+      "parent_id": "mp_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_02",
+      "title": "平面连杆机构",
+      "path": [
+        "机械原理",
+        "平面连杆机构"
+      ],
+      "parent_id": "kaoyan_mechanical_principles",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_03",
+      "title": "凸轮机构",
+      "path": [
+        "机械原理",
+        "凸轮机构"
+      ],
+      "parent_id": "kaoyan_mechanical_principles",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_04",
+      "title": "齿轮机构",
+      "path": [
+        "机械原理",
+        "齿轮机构"
+      ],
+      "parent_id": "kaoyan_mechanical_principles",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_05",
+      "title": "轮系",
+      "path": [
+        "机械原理",
+        "轮系"
+      ],
+      "parent_id": "kaoyan_mechanical_principles",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_06",
+      "title": "机械平衡",
+      "path": [
+        "机械原理",
+        "机械平衡"
+      ],
+      "parent_id": "kaoyan_mechanical_principles",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "mp_07",
+      "title": "机械效率",
+      "path": [
+        "机械原理",
+        "机械效率"
+      ],
+      "parent_id": "kaoyan_mechanical_principles",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    }
+  ]
+}

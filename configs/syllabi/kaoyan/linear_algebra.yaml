@@ -1,0 +1,29 @@
+subject: 线性代数
+syllabus_id: kaoyan_linear_algebra
+nodes:
+  - id: la_01
+    name: 行列式
+    children:
+      - {id: la_01_01, name: 行列式定义}
+      - {id: la_01_02, name: 行列式性质}
+      - {id: la_01_03, name: 行列式展开}
+      - {id: la_01_04, name: 克拉默法则}
+  - id: la_02
+    name: 矩阵
+    children:
+      - id: la_02_01
+        name: 矩阵运算
+        children:
+          - {id: la_02_01_01, name: 矩阵加法}
+          - {id: la_02_01_02, name: 矩阵减法}
+          - {id: la_02_01_03, name: 矩阵乘法}
+          - {id: la_02_01_04, name: 数乘矩阵}
+          - {id: la_02_01_05, name: 矩阵转置}
+      - {id: la_02_02, name: 逆矩阵}
+      - {id: la_02_03, name: 初等矩阵}
+      - {id: la_02_04, name: 矩阵秩}
+      - {id: la_02_05, name: 分块矩阵}
+  - {id: la_03, name: 向量}
+  - {id: la_04, name: 线性方程组}
+  - {id: la_05, name: 特征值与特征向量}
+  - {id: la_06, name: 二次型}

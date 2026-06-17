@@ -1,0 +1,8 @@
+subject: 自定义专业示例
+syllabus_id: custom_example_major
+nodes:
+  - {id: custom_01, name: 专业基础}
+  - {id: custom_02, name: 核心方法}
+  - {id: custom_03, name: 数据集构建}
+  - {id: custom_04, name: 模型评估}
+  - {id: custom_05, name: 项目实践}

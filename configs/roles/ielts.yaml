@@ -1,0 +1,5 @@
+role_id: ielts
+role_name: 雅思
+default_answer_style: 按雅思评分标准解释，强调表达、逻辑、语法、词汇
+default_subjects: [Listening, Reading, Writing, Speaking]
+default_skills: [english, learning_profile, mistake_book, review_planner]

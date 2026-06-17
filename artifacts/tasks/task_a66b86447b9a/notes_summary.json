@@ -1,0 +1,75 @@
+[
+  {
+    "created_at": "20260617_091202",
+    "detected_subject": "????",
+    "source_file": "20260617_091202_pasted_note.txt",
+    "extracted_knowledge_nodes": [
+      {
+        "title": "????",
+        "path": [
+          "????",
+          "????"
+        ],
+        "summary": "????",
+        "mastery_signal": "已接触",
+        "evidence": "来自用户笔记标题或条目"
+      },
+      {
+        "title": "?????????",
+        "path": [
+          "????",
+          "?????????"
+        ],
+        "summary": "?????????",
+        "mastery_signal": "已接触",
+        "evidence": "来自用户笔记标题或条目"
+      },
+      {
+        "title": "????? ???",
+        "path": [
+          "????",
+          "????? ???"
+        ],
+        "summary": "????? ???",
+        "mastery_signal": "已接触",
+        "evidence": "来自用户笔记标题或条目"
+      }
+    ],
+    "user_mastery_updates": [
+      {
+        "path": [
+          "????",
+          "????"
+        ],
+        "mastery_status": "已接触",
+        "reason": "来自用户笔记标题或条目"
+      },
+      {
+        "path": [
+          "????",
+          "?????????"
+        ],
+        "mastery_status": "已接触",
+        "reason": "来自用户笔记标题或条目"
+      },
+      {
+        "path": [
+          "????",
+          "????? ???"
+        ],
+        "mastery_status": "已接触",
+        "reason": "来自用户笔记标题或条目"
+      }
+    ],
+    "missing_prerequisites": [
+      "运动副分类",
+      "局部自由度",
+      "虚约束",
+      "构件",
+      "运动链"
+    ],
+    "review_suggestions": [
+      "先复习本笔记中标记的重点概念，再回到学习画像中查看相关历史问题。"
+    ]
+  }
+]

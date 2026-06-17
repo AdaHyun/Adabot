@@ -1,0 +1,7 @@
+subject: 研究方法
+syllabus_id: postgraduate_research_method
+nodes:
+  - {id: pgr_01, name: 问题定义}
+  - {id: pgr_02, name: 文献综述}
+  - {id: pgr_03, name: 实验设计}
+  - {id: pgr_04, name: 结果分析}

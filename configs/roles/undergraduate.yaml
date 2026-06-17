@@ -1,0 +1,5 @@
+role_id: undergraduate
+role_name: 本科生
+default_answer_style: 课程导向、作业导向、概念和证明兼顾
+default_subjects: [高等数学, 线性代数, 专业课, 实验报告]
+default_skills: [math, english, project_debugger, learning_profile, mistake_book, review_planner]

@@ -1,0 +1,8 @@
+subject: Reading
+syllabus_id: ielts_reading
+nodes:
+  - {id: ir_01, name: 判断题}
+  - {id: ir_02, name: 匹配题}
+  - {id: ir_03, name: 填空题}
+  - {id: ir_04, name: 段落标题}
+  - {id: ir_05, name: 长难句}

@@ -1,0 +1,9 @@
+subject: 英语
+syllabus_id: kaoyan_english
+nodes:
+  - {id: ke_01, name: 词汇}
+  - {id: ke_02, name: 长难句}
+  - {id: ke_03, name: 阅读理解}
+  - {id: ke_04, name: 翻译}
+  - {id: ke_05, name: 小作文}
+  - {id: ke_06, name: 大作文}

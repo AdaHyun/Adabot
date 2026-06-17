@@ -1,0 +1,127 @@
+{
+  "task_id": "task_676cec08b012",
+  "task_name": "2027考研机械",
+  "subject": "概率论",
+  "updated_at": "2026-06-17T09:59:23",
+  "nodes": [
+    {
+      "node_id": "pr_01",
+      "title": "随机事件与概率",
+      "path": [
+        "概率论",
+        "随机事件与概率"
+      ],
+      "parent_id": "kaoyan_probability",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "pr_02",
+      "title": "随机变量及分布",
+      "path": [
+        "概率论",
+        "随机变量及分布"
+      ],
+      "parent_id": "kaoyan_probability",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "pr_03",
+      "title": "多维随机变量",
+      "path": [
+        "概率论",
+        "多维随机变量"
+      ],
+      "parent_id": "kaoyan_probability",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "pr_04",
+      "title": "数字特征",
+      "path": [
+        "概率论",
+        "数字特征"
+      ],
+      "parent_id": "kaoyan_probability",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "pr_05",
+      "title": "大数定律与中心极限定理",
+      "path": [
+        "概率论",
+        "大数定律与中心极限定理"
+      ],
+      "parent_id": "kaoyan_probability",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "pr_06",
+      "title": "参数估计",
+      "path": [
+        "概率论",
+        "参数估计"
+      ],
+      "parent_id": "kaoyan_probability",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "pr_07",
+      "title": "假设检验",
+      "path": [
+        "概率论",
+        "假设检验"
+      ],
+      "parent_id": "kaoyan_probability",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    }
+  ]
+}

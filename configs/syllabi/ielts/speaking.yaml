@@ -1,0 +1,8 @@
+subject: Speaking
+syllabus_id: ielts_speaking
+nodes:
+  - {id: is_01, name: Part 1 日常问答}
+  - {id: is_02, name: Part 2 个人陈述}
+  - {id: is_03, name: Part 3 深入讨论}
+  - {id: is_04, name: 流利度}
+  - {id: is_05, name: 发音}

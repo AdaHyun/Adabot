@@ -1,0 +1,10 @@
+subject: 概率论
+syllabus_id: kaoyan_probability
+nodes:
+  - {id: pr_01, name: 随机事件与概率}
+  - {id: pr_02, name: 随机变量及分布}
+  - {id: pr_03, name: 多维随机变量}
+  - {id: pr_04, name: 数字特征}
+  - {id: pr_05, name: 大数定律与中心极限定理}
+  - {id: pr_06, name: 参数估计}
+  - {id: pr_07, name: 假设检验}

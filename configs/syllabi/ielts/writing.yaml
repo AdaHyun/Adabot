@@ -1,0 +1,8 @@
+subject: Writing
+syllabus_id: ielts_writing
+nodes:
+  - {id: iw_01, name: Task 1 图表作文}
+  - {id: iw_02, name: Task 2 观点类}
+  - {id: iw_03, name: Task 2 讨论类}
+  - {id: iw_04, name: 语法准确性}
+  - {id: iw_05, name: 词汇多样性}

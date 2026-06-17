@@ -27,6 +27,41 @@ from memory_manager import (
     trim_chat_history,
 )
 from skills import list_skills, run_selected_skills
+from learning_tasks.mistake_store import add_to_mistake_book
+from learning_tasks.artifact_store import sync_task_artifacts
+from learning_tasks.profile_analyzer import analyze_learning_event
+from learning_tasks.profile_store import (
+    load_recent_chat_messages,
+    save_knowledge_event,
+    save_question,
+    update_knowledge_state,
+    update_question_with_event,
+)
+from learning_tasks.syllabus_manager import load_role_config
+from learning_tasks.task_router import build_learning_context
+from learning_tasks.task_store import get_or_create_default_task, get_task, init_db, set_active_task
+from learning_tasks.task_ui import (
+    active_task_label,
+    create_task_from_form,
+    generate_quiz_ui,
+    grade_quiz_ui,
+    manual_add_mistake_ui,
+    initialize_knowledge_drilldown,
+    on_back_to_parent,
+    on_knowledge_node_click,
+    process_notes_ui,
+    profile_node_choices,
+    refresh_task_dropdown,
+    render_node_detail_ui,
+    render_mistakes_ui,
+    render_profile_ui,
+    render_review_plan_ui,
+    render_task_list,
+    search_history_ui,
+    subject_choices_for_task,
+    switch_task,
+    task_choices,
+)
 from utils import (
     build_gallery_items,
     build_prompt,
@@ -49,6 +84,8 @@ LATEX_DELIMITERS = [
     {"left": "\\[", "right": "\\]", "display": True},
 ]
 
+DEBUG_DISABLE_PROFILE_EVENTS = False
+# DEBUG_DISABLE_PROFILE_EVENTS = True
 
 def find_available_port(start_port: int, max_attempts: int = 20) -> int:
     """Find an available local TCP port, starting from the preferred port."""
@@ -69,11 +106,7 @@ def toggle_ocr_output(enable_ocr: bool):
 
 
 def add_single_image(image: Any, current_images: list[Any] | None):
-    """
-    从主图片框添加单张图片。
-
-    主图片框负责上传、粘贴、拍摄；添加后保存到 artifacts，并刷新缩略图列表。
-    """
+    """Add one image from the main image input."""
     images = normalize_uploaded_files(current_images)
     if image is not None:
         images.append(save_image_to_artifacts(image))
@@ -83,11 +116,7 @@ def add_single_image(image: Any, current_images: list[Any] | None):
 
 
 def add_batch_images(files: Any, current_images: list[Any] | None):
-    """
-    从批量上传入口添加多张图片。
-
-    该入口用于一次选择多张；仍然只保留前 3 张。
-    """
+    """Add multiple images from the batch upload input."""
     images = normalize_uploaded_files(current_images)
     images.extend(normalize_uploaded_files(files))
     images = images[:3]
@@ -95,17 +124,22 @@ def add_batch_images(files: Any, current_images: list[Any] | None):
 
 
 def clear_images():
-    """清空当前已添加图片。"""
+    """Clear selected images."""
     return [], [], None
 
 
+def clear_composer_after_send():
+    """Reset the composer after one send finishes."""
+    return "", [], [], None
+
+
 def select_image(evt: gr.SelectData):
-    """记录 Gallery 中当前选中的图片序号。"""
+    """Record the selected gallery index."""
     return evt.index
 
 
 def delete_selected_image(current_images: list[Any] | None, selected_index: int | None):
-    """删除 Gallery 中选中的单张图片。"""
+    """Delete the selected image from the gallery."""
     images = normalize_uploaded_files(current_images)
     if selected_index is not None and 0 <= selected_index < len(images):
         images.pop(selected_index)
@@ -116,7 +150,7 @@ def mark_generation_stopped(
     current_messages: list[dict[str, str]] | None,
     current_debug_info: str | None,
 ):
-    """停止生成后同步更新界面，避免状态一直停留在“模型流式输出中”。"""
+    """Update the UI state after stopping generation."""
     messages = list(current_messages or [])
     stop_notice = "\n\n> 模型已停止思考。"
 
@@ -137,21 +171,12 @@ def mark_generation_stopped(
 
 
 def run_agent_sync_legacy(user_text: str, image_state: list[Any] | None, enable_ocr: bool) -> Tuple[str, str, str]:
-    """
-    Agent 主流程。
-
-    参数：
-    - user_text：用户输入的文本说明。
-    - image_state：当前已添加的图片路径列表。
-    - enable_ocr：是否启用 OCR 辅助识别。
-    """
+    """Legacy synchronous Agent flow."""
     ensure_project_dirs()
 
     clean_user_text = (user_text or "").strip()
     uploaded_images = normalize_uploaded_files(image_state)
     uploaded_image_count = len(uploaded_images)
-
-    # 最多使用前 3 张图片；如果未来有更多来源传入，也只取前 3 张。
     images = uploaded_images[:3]
     image_count = len(images)
     has_images = image_count > 0
@@ -166,27 +191,20 @@ def run_agent_sync_legacy(user_text: str, image_state: list[Any] | None, enable_
         ocr_error = "OCR 已启用，但未上传图片。"
 
     combined_text = "\n".join(part for part in [clean_user_text, ocr_text] if part).strip()
-
     if not combined_text and not has_images:
-        return "请输入 Text Description，或添加 1-3 张包含题目的图片。", "", "未调用 Skill；未写入日志。"
+        return "请输入问题，或添加 1-3 张包含题目的图片。", "", "未调用 Skill；未写入日志。"
 
     skill_input = combined_text or f"用户上传了 {image_count} 张题目图片，请直接阅读图片并回答。"
     selected_skills, skill_context = run_selected_skills(skill_input)
-
     prompt = build_prompt(
         user_text=clean_user_text,
         ocr_text=ocr_text,
         skill_context=skill_context,
         image_count=image_count,
     )
-
     answer = call_qwen_model(prompt=prompt, images=images if has_images else None)
     answer = normalize_markdown_math(answer)
-
-    ocr_display = ocr_text
-    if ocr_error:
-        ocr_display = f"{ocr_display}\n\n{ocr_error}".strip()
-
+    ocr_display = f"{ocr_text}\n\n{ocr_error}".strip() if ocr_error else ocr_text
     log_path = write_log(
         {
             "user_text": clean_user_text,
@@ -202,7 +220,6 @@ def run_agent_sync_legacy(user_text: str, image_state: list[Any] | None, enable_
             "model_answer": answer,
         }
     )
-
     debug_info = (
         f"图片直传模型：{'是' if has_images else '否'}\n"
         f"已添加图片数：{uploaded_image_count}\n"
@@ -212,11 +229,10 @@ def run_agent_sync_legacy(user_text: str, image_state: list[Any] | None, enable_
         f"已调用 Skill：{', '.join(selected_skills) if selected_skills else '无'}\n"
         f"日志文件：{log_path}"
     )
-
     return answer, ocr_display, debug_info
 
-
 def run_agent(
+    task_choice: str | None,
     user_text: str,
     image_state: list[Any] | None,
     enable_ocr: bool,
@@ -226,18 +242,29 @@ def run_agent(
     ensure_project_dirs()
 
     clean_user_text = (user_text or "").strip()
-    chat_history = trim_chat_history(chat_history_state)
+    chat_history = list(chat_history_state or [])[-40:]
     uploaded_images = normalize_uploaded_files(image_state)
     uploaded_image_count = len(uploaded_images)
+    init_db()
+    task = None
+    if task_choice and "(" in task_choice and task_choice.endswith(")"):
+        task_id = task_choice.rsplit("(", 1)[-1][:-1]
+        task = get_task(task_id)
+        if task:
+            set_active_task(task.id)
+    task = task or get_or_create_default_task()
 
     images = uploaded_images[:3]
     image_count = len(images)
     has_images = image_count > 0
 
-    messages = [
+    user_content = clean_user_text or f"用户上传了 {image_count} 张图片。"
+    if image_count:
+        user_content = f"{user_content}\n\n[已上传 {image_count} 张图片]"
+    messages = chat_history + [
         {
             "role": "user",
-            "content": clean_user_text or f"用户上传了 {image_count} 张图片。"
+            "content": user_content
         },
         {
             "role": "assistant",
@@ -246,7 +273,7 @@ def run_agent(
     ]
 
     if not clean_user_text and not has_images:
-        messages[-1]["content"] = "请输入 Text Description，或添加 1-3 张包含题目的图片。"
+        messages[-1]["content"] = "请输入问题，或添加 1-3 张包含题目的图片。"
         yield messages, "", "未调用 Skill；未写入日志。", chat_history
         return
 
@@ -265,6 +292,10 @@ def run_agent(
     combined_text = "\n".join(part for part in [clean_user_text, ocr_text] if part).strip()
     skill_input = combined_text or f"用户上传了 {image_count} 张题目图片，请直接阅读图片并回答。"
     selected_skills, skill_context = run_selected_skills(skill_input)
+    primary_skill = selected_skills[0] if selected_skills else "general"
+    learning_context = build_learning_context(task, skill_input, primary_skill)
+    role_config = load_role_config(task.role_type)
+    learning_context_text = learning_context.to_prompt_text(role_config.get("role_name", task.role_type))
     memory_query = "\n".join(part for part in [clean_user_text, ocr_text, skill_context] if part).strip()
     retrieved_memories, long_term_memory_text = retrieve_memory_context(DEFAULT_USER_ID, memory_query)
     chat_history_text, history_turns = format_chat_history(chat_history)
@@ -276,6 +307,7 @@ def run_agent(
         image_count=image_count,
         chat_history_text=chat_history_text,
         long_term_memory_text=long_term_memory_text,
+        learning_context_text=learning_context_text,
     )
 
     ocr_display = ocr_text
@@ -292,6 +324,15 @@ def run_agent(
         "ocr_error": ocr_error,
         "selected_skills": selected_skills,
         "skill_context": skill_context,
+        "learning_task": {
+            "task_id": task.id,
+            "task_name": task.task_name,
+            "role_type": task.role_type,
+            "subject": learning_context.subject,
+            "primary_skill": learning_context.primary_skill,
+            "knowledge_node_id": learning_context.knowledge_node_id,
+            "knowledge_path": learning_context.knowledge_path,
+        },
         "history_used": history_turns > 0,
         "history_turns": history_turns,
         "memory": {
@@ -317,6 +358,8 @@ def run_agent(
         f"忽略图片数：{max(uploaded_image_count - image_count, 0)}\n"
         f"OCR 启用：{'是' if enable_ocr else '否'}\n"
         f"已调用 Skill：{', '.join(selected_skills) if selected_skills else '无'}\n"
+        f"学习任务：{task.task_name} / {task.role_type}\n"
+        f"画像预判：{learning_context.subject} / {' > '.join(learning_context.knowledge_path) if learning_context.knowledge_path else learning_context.knowledge_node_id}\n"
         f"短期历史轮数：{history_turns}\n"
         f"长期记忆命中：{len(retrieved_memories)}\n"
         f"日志文件：{request_log_path}\n"
@@ -351,7 +394,10 @@ def run_agent(
             assistant_answer=final_answer,
             source="chat",
         )
-        updated_history = append_turn_to_history(chat_history, clean_user_text, final_answer, image_count=image_count)
+        updated_history = (chat_history + [
+            {"role": "user", "content": user_content},
+            {"role": "assistant", "content": final_answer},
+        ])[-40:]
         completion_record = {
             **base_record,
             "memory": {
@@ -373,8 +419,50 @@ def run_agent(
                 **completion_record,
             }
         )
+        profile_note = ""
+        try:
+            question_id = save_question(
+                task_id=task.id,
+                user_input=clean_user_text or skill_input,
+                assistant_answer=final_answer,
+                primary_skill=learning_context.primary_skill,
+                subject=learning_context.subject,
+                knowledge_node_id=learning_context.knowledge_node_id,
+                knowledge_path=learning_context.knowledge_path,
+            )
+            event = analyze_learning_event(
+                task=task,
+                context=learning_context,
+                user_input=clean_user_text or skill_input,
+                assistant_answer=final_answer,
+            )
+            update_question_with_event(question_id, event)
+            save_knowledge_event(question_id, event)
+            update_knowledge_state(task.id, event)
+            if event.get("should_add_to_mistake_book"):
+                add_to_mistake_book(
+                    task.id,
+                    question_id,
+                    event,
+                    original_question=clean_user_text or skill_input,
+                    correct_solution=final_answer,
+                )
+            sync_task_artifacts(task)
+            profile_note = (
+                f"\n画像记录：{event.get('subject') or '-'} / "
+                f"{' > '.join(event.get('knowledge_path') or []) or event.get('knowledge_node_id') or '-'}"
+            )
+        except Exception as profile_exc:
+            write_log(
+                {
+                    "event": "profile_update_failed",
+                    "task_id": task.id,
+                    "error": str(profile_exc),
+                }
+            )
+            profile_note = f"\n画像记录失败：{profile_exc}"
         final_debug_info = debug_info.replace("状态：模型流式输出中", "状态：模型调用完成")
-        final_debug_info = f"{final_debug_info}\n新增长期记忆：{len(saved_memories)}\n完成日志：{completion_log_path}"
+        final_debug_info = f"{final_debug_info}\n新增长期记忆：{len(saved_memories)}{profile_note}\n完成日志：{completion_log_path}"
         yield messages, ocr_display, final_debug_info, updated_history
     except Exception as exc:
         partial_answer = normalize_markdown_math("".join(answer_parts))
@@ -391,147 +479,426 @@ def run_agent(
 
 
 def build_ui() -> gr.Blocks:
-    """构建 Gradio 页面。"""
+    """Backward-compatible wrapper for the current UI."""
+    return build_ui_v2()
+
+def build_ui_v2() -> gr.Blocks:
+    """Build the task-aware Gradio UI."""
+    init_db()
+    active_task = get_or_create_default_task()
+    initial_chat_history = load_recent_chat_messages(active_task.id)
+    choices = task_choices()
+    css_path = os.path.join(os.path.dirname(__file__), "assets", "custom.css")
+    css_text = ""
+    if os.path.exists(css_path):
+        with open(css_path, "r", encoding="utf-8") as f:
+            css_text = f.read()
     with gr.Blocks(title="Adabot") as demo:
+        if css_text:
+            gr.HTML(f"<style>{css_text}</style>")
         image_state = gr.State([])
         selected_image_index = gr.State(None)
-        chat_history_state = gr.State([])
+        chat_history_state = gr.State(initial_chat_history)
+        current_node_id_state = gr.State("__root__")
+        nav_stack_state = gr.State([])
+        selected_node_id_state = gr.State("")
+        profile_node_rows_state = gr.State([])
+        current_subject_state = gr.State((active_task.subjects or ["通用"])[0])
 
         gr.Markdown("# Adabot")
         gr.Markdown(f"当前已注册 Skill：`{', '.join(list_skills())}`")
-
         with gr.Row():
-            user_text = gr.Textbox(
-                label="Text Description",
-                placeholder="例如：告诉我图片中第一个积分怎么算；分析这道车辆工程题；帮我修改 IELTS Task 2 作文...",
-                lines=8,
+            task_dropdown = gr.Dropdown(
+                label="当前学习任务",
+                choices=choices,
+                value=choices[0] if choices else None,
+                scale=4,
+            )
+            refresh_tasks_btn = gr.Button("刷新", size="sm", scale=1)
+        active_task_md = gr.Markdown(active_task_label())
+        with gr.Row():
+            ui_health_btn = gr.Button("UI 健康检查", size="sm")
+            ui_health_output = gr.Textbox(label="UI 健康检查结果", value="", interactive=False)
+
+        with gr.Tabs():
+            with gr.Tab("聊天"):
+                answer = gr.Chatbot(
+                    label="",
+                    height=620,
+                    buttons=["copy", "copy_all"],
+                    latex_delimiters=LATEX_DELIMITERS,
+                    render_markdown=True,
+                    line_breaks=True,
+                    elem_classes=["chat-stream"],
+                    value=initial_chat_history,
+                )
+                with gr.Row():
+                    user_text = gr.Textbox(
+                        label="",
+                        placeholder="输入你的问题，或上传题目图片。例如：矩阵乘法为什么是行乘列？这题我错了，加入错题本。",
+                        lines=5,
+                        elem_classes=["composer-text"],
+                    )
+                    with gr.Column():
+                        image_input = gr.Image(
+                            label="",
+                            show_label=False,
+                            type="pil",
+                            sources=["upload", "clipboard", "webcam"],
+                            height=190,
+                            elem_classes=["composer-image"],
+                        )
+                        image_preview = gr.Gallery(
+                            label="",
+                            show_label=False,
+                            type="filepath",
+                            columns=3,
+                            rows=1,
+                            height=120,
+                            object_fit="contain",
+                            allow_preview=True,
+                            preview=True,
+                            elem_classes=["image-preview-strip"],
+                        )
+                        with gr.Row():
+                            batch_upload = gr.UploadButton(
+                                "批量上传",
+                                file_count="multiple",
+                                file_types=["image"],
+                                type="filepath",
+                                size="sm",
+                            )
+                            delete_btn = gr.Button("删除选中图片", size="sm")
+                            clear_btn = gr.Button("清空图片", size="sm")
+
+                with gr.Row(elem_classes=["composer-actions"]):
+                    enable_ocr = gr.Checkbox(label="OCR", value=False)
+                    submit_btn = gr.Button("发送", variant="primary")
+                    stop_btn = gr.Button("停止生成", variant="stop")
+                ocr_output = gr.Textbox(label="OCR 状态 / 识别结果", lines=6, visible=False)
+                debug_output = gr.Textbox(label="调试信息", lines=6)
+
+            with gr.Tab("任务管理"):
+                task_list_md = gr.Markdown(render_task_list())
+                with gr.Row():
+                    new_task_name = gr.Textbox(label="任务名称", value="2027考研机械")
+                    new_role = gr.Dropdown(
+                        label="角色类型",
+                        choices=["考研", "高考", "雅思", "本科生", "研究生", "自定义"],
+                        value="考研",
+                    )
+                goal_text = gr.Textbox(label="学习目标描述", value="备考考研数学一、英语一、机械原理", lines=2)
+                with gr.Row():
+                    target_exam = gr.Textbox(label="目标考试", value="2027考研")
+                    target_date = gr.Textbox(label="目标日期", value="2027-12-20")
+                subjects_text = gr.Textbox(label="科目列表，逗号分隔", value="高等数学,线性代数,概率论,英语,机械原理")
+                custom_outline = gr.Textbox(
+                    label="自定义知识框架（custom 任务可填写，按缩进或 - 表示层级）",
+                    placeholder="公共卫生基础\n  - 公共卫生定义\n  - 核心职能\n流行病学\n  - 发病率\n  - 队列研究\n医学大模型\n  - 数据集\n  - 评测基准",
+                    lines=8,
+                )
+                answer_style_box = gr.Textbox(label="回答风格", value="", lines=2)
+                with gr.Row():
+                    enable_profile = gr.Checkbox(label="启用学习画像", value=True)
+                    enable_mistake = gr.Checkbox(label="启用错题本", value=True)
+                    enable_review = gr.Checkbox(label="启用复习计划", value=True)
+                create_task_btn = gr.Button("新建任务", variant="primary")
+                create_task_status = gr.Markdown()
+
+            with gr.Tab("学习画像"):
+                with gr.Row():
+                    initial_subjects = active_task.subjects or ["通用"]
+                    profile_subject = gr.Dropdown(label="科目", choices=initial_subjects, value=initial_subjects[0])
+                    profile_view = gr.Dropdown(
+                        label="视图",
+                        choices=["逐级目录", "思维导图", "树状视图"],
+                        value="逐级目录",
+                    )
+                    profile_refresh_btn = gr.Button("刷新画像")
+                with gr.Row():
+                    with gr.Column(scale=2):
+                        profile_breadcrumb = gr.HTML()
+                        back_parent_btn = gr.Button("返回上一级", elem_classes=["back-button"], interactive=False)
+                        profile_node_selector = gr.Dataframe(
+                            label="当前层级知识点",
+                            headers=["知识点", "状态", "提问数", "类型", "ID"],
+                            datatype=["str", "str", "str", "str", "str"],
+                            value=[],
+                            interactive=False,
+                            wrap=True,
+                            elem_classes=["knowledge-node-table"],
+                        )
+                    with gr.Column(scale=1):
+                        profile_node_detail = gr.HTML("<div class='node-detail-empty'>请选择一个知识点。</div>")
+                gr.Markdown("### 上传我的笔记 / 知识框架")
+                with gr.Row():
+                    notes_files = gr.File(
+                        label="上传笔记文件",
+                        file_count="multiple",
+                        file_types=["image", ".pdf", ".docx", ".txt", ".md"],
+                    )
+                    notes_text = gr.Textbox(
+                        label="直接粘贴笔记",
+                        placeholder="可以粘贴电子版知识框架、学习心得、错题总结...",
+                        lines=6,
+                    )
+                notes_process_btn = gr.Button("解析并更新学习画像")
+                notes_result = gr.Markdown()
+
+            with gr.Tab("错题本"):
+                with gr.Row():
+                    mistake_subject = gr.Textbox(label="科目过滤", placeholder="可留空")
+                    mistake_keyword = gr.Textbox(label="关键词 / 知识点过滤", placeholder="例如：矩阵乘法")
+                    mistake_refresh_btn = gr.Button("刷新错题本")
+                mistake_output = gr.Markdown()
+                gr.Markdown("### 手动添加错题")
+                manual_question = gr.Textbox(label="原题/问题", lines=3)
+                manual_reason = gr.Textbox(label="错误原因", lines=2)
+                manual_add_btn = gr.Button("手动加入错题本")
+
+            with gr.Tab("复习计划"):
+                review_refresh_btn = gr.Button("生成复习建议")
+                review_output = gr.Markdown()
+
+            with gr.Tab("历史记忆检索"):
+                history_keyword = gr.Textbox(label="关键词", placeholder="例如：矩阵乘法")
+                history_search_btn = gr.Button("检索当前任务")
+                history_output = gr.Markdown()
+
+            with gr.Tab("小测验"):
+                with gr.Row():
+                    quiz_subject = gr.Textbox(label="科目", value="线性代数")
+                    quiz_knowledge = gr.Textbox(label="知识点路径 / 名称", value="线性代数 > 矩阵 > 矩阵乘法")
+                with gr.Row():
+                    quiz_count = gr.Number(label="题目数量", value=3, precision=0)
+                    quiz_difficulty = gr.Dropdown(label="难度", choices=["基础", "进阶", "综合"], value="基础")
+                    quiz_btn = gr.Button("生成小测")
+                quiz_output = gr.Markdown()
+                quiz_node_id = gr.Textbox(label="知识点 ID", value="general")
+                quiz_answer = gr.Textbox(label="提交答案", lines=5)
+                quiz_grade_btn = gr.Button("批改并更新掌握状态")
+                quiz_grade_output = gr.Markdown()
+
+        ui_health_btn.click(fn=lambda: "OK: UI callback works", inputs=[], outputs=[ui_health_output])
+        refresh_tasks_btn.click(fn=refresh_task_dropdown, inputs=[], outputs=[task_dropdown, active_task_md])
+        task_switch_event = task_dropdown.change(
+            fn=switch_task, inputs=[task_dropdown], 
+            outputs=[active_task_md, chat_history_state]).then(
+            fn=subject_choices_for_task,
+            inputs=[task_dropdown],
+            outputs=[profile_subject],
+        ).then(
+            fn=lambda history: history,
+            inputs=[chat_history_state],
+            outputs=[answer],
+        )
+        # if not DEBUG_DISABLE_PROFILE_EVENTS:
+        #     task_switch_event.then(
+        #         fn=initialize_knowledge_drilldown,
+        #         inputs=[task_dropdown, profile_subject],
+        #         outputs=[
+        #             current_node_id_state,
+        #             nav_stack_state,
+        #             selected_node_id_state,
+        #             current_subject_state,
+        #             profile_breadcrumb,
+        #             profile_node_selector,
+        #             profile_node_detail,
+        #             back_parent_btn,
+        #         ],
+        #     )
+        create_task_event = create_task_btn.click(
+            fn=create_task_from_form,
+            inputs=[
+                new_task_name,
+                new_role,
+                goal_text,
+                target_exam,
+                target_date,
+                subjects_text,
+                answer_style_box,
+                enable_profile,
+                enable_mistake,
+                enable_review,
+                custom_outline,
+            ],
+            outputs=[task_dropdown, create_task_status, task_list_md, chat_history_state],
+        ).then(fn=refresh_task_dropdown, inputs=[], outputs=[task_dropdown, active_task_md]).then(
+            fn=subject_choices_for_task,
+            inputs=[task_dropdown],
+            outputs=[profile_subject],
+        ).then(
+            fn=lambda history: history,
+            inputs=[chat_history_state],
+            outputs=[answer],
+        )
+        # if not DEBUG_DISABLE_PROFILE_EVENTS:
+        #     create_task_event.then(
+        #         fn=initialize_knowledge_drilldown,
+        #         inputs=[task_dropdown, profile_subject],
+        #         outputs=[
+        #             current_node_id_state,
+        #             nav_stack_state,
+        #             selected_node_id_state,
+        #             current_subject_state,
+        #             profile_breadcrumb,
+        #             profile_node_selector,
+        #             profile_node_detail,
+        #             back_parent_btn,
+        #         ],
+        #     )
+        if not DEBUG_DISABLE_PROFILE_EVENTS:
+            profile_refresh_btn.click(
+                fn=initialize_knowledge_drilldown,
+                inputs=[task_dropdown, profile_subject],
+                outputs=[
+                    current_node_id_state,
+                    nav_stack_state,
+                    selected_node_id_state,
+                    current_subject_state,
+                    profile_node_rows_state,
+                    profile_breadcrumb,
+                    profile_node_selector,
+                    profile_node_detail,
+                    back_parent_btn,
+                ],
+            )
+            profile_subject.change(
+                fn=initialize_knowledge_drilldown,
+                inputs=[task_dropdown, profile_subject],
+                outputs=[
+                    current_node_id_state,
+                    nav_stack_state,
+                    selected_node_id_state,
+                    current_subject_state,
+                    profile_node_rows_state,
+                    profile_breadcrumb,
+                    profile_node_selector,
+                    profile_node_detail,
+                    back_parent_btn,
+                ],
+            )
+            # profile_node_selector.change(
+            profile_node_selector.select(
+                fn=on_knowledge_node_click,
+                inputs=[profile_node_rows_state, current_node_id_state, nav_stack_state, task_dropdown, profile_subject],
+                outputs=[
+                    current_node_id_state,
+                    nav_stack_state,
+                    selected_node_id_state,
+                    profile_node_rows_state,
+                    profile_node_selector,
+                    profile_breadcrumb,
+                    profile_node_detail,
+                    back_parent_btn,
+                ],
+            )
+            back_parent_btn.click(
+                fn=on_back_to_parent,
+                inputs=[current_node_id_state, nav_stack_state, task_dropdown, profile_subject, selected_node_id_state],
+                outputs=[
+                    current_node_id_state,
+                    nav_stack_state,
+                    selected_node_id_state,
+                    profile_node_rows_state,
+                    profile_node_selector,
+                    profile_breadcrumb,
+                    profile_node_detail,
+                    back_parent_btn,
+                ],
+            )
+            notes_process_btn.click(
+                fn=process_notes_ui,
+                inputs=[task_dropdown, notes_files, notes_text],
+                outputs=[notes_result],
+            ).then(
+                fn=initialize_knowledge_drilldown,
+                inputs=[task_dropdown, profile_subject],
+                outputs=[
+                    current_node_id_state,
+                    nav_stack_state,
+                    selected_node_id_state,
+                    current_subject_state,
+                    profile_node_rows_state,
+                    profile_breadcrumb,
+                    profile_node_selector,
+                    profile_node_detail,
+                    back_parent_btn,
+                ],
             )
 
-            with gr.Column():
-                image_input = gr.Image(
-                    label="",
-                    show_label=False,
-                    type="pil",
-                    sources=["upload", "clipboard", "webcam"],
-                    height=260,
-                )
+        mistake_refresh_btn.click(fn=render_mistakes_ui, inputs=[task_dropdown, mistake_subject, mistake_keyword], outputs=[mistake_output])
+        manual_add_btn.click(fn=manual_add_mistake_ui, inputs=[task_dropdown, mistake_subject, manual_question, manual_reason], outputs=[mistake_output])
+        review_refresh_btn.click(fn=render_review_plan_ui, inputs=[task_dropdown], outputs=[review_output])
+        history_search_btn.click(fn=search_history_ui, inputs=[task_dropdown, history_keyword], outputs=[history_output])
+        quiz_btn.click(fn=generate_quiz_ui, inputs=[task_dropdown, quiz_subject, quiz_knowledge, quiz_count, quiz_difficulty], outputs=[quiz_output])
+        quiz_grade_btn.click(fn=grade_quiz_ui, inputs=[task_dropdown, quiz_node_id, quiz_answer], outputs=[quiz_grade_output])
 
-                image_preview = gr.Gallery(
-                    label="",
-                    show_label=False,
-                    type="filepath",
-                    columns=3,
-                    rows=1,
-                    height=120,
-                    object_fit="contain",
-                    allow_preview=True,
-                    preview=True,
-                )
-
-                with gr.Row():
-                    batch_upload = gr.UploadButton(
-                        "批量上传",
-                        file_count="multiple",
-                        file_types=["image"],
-                        type="filepath",
-                        size="sm",
-                    )
-                    delete_btn = gr.Button("删除选中图片", size="sm")
-                    clear_btn = gr.Button("清空图片", size="sm")
-
-        enable_ocr = gr.Checkbox(
-            label="启用 OCR 辅助识别",
-            value=False,
-        )
-
-        with gr.Row():
-            submit_btn = gr.Button("launch", variant="primary")
-            stop_btn = gr.Button("停止生成", variant="stop")
-
-        # Gradio 6.x 的 Chatbot 默认接收 messages 格式，不再支持 type="messages"。
-        # 复制按钮也改为通过 buttons 配置，避免旧参数在 6.x 中启动失败。
-        answer = gr.Chatbot(
-            label="Agent 回答",
-            height=520,
-            buttons=["copy", "copy_all"],
-            # Chatbot 默认也会渲染 Markdown，但公式分隔符需要显式传入。
-            # 否则模型输出的 $...$、$$...$$、\(...\)、\[...\] 容易显示成原始文本。
-            latex_delimiters=LATEX_DELIMITERS,
-            render_markdown=True,
-            line_breaks=True,
-        )
-        ocr_output = gr.Textbox(label="OCR 状态 / 识别结果", lines=6, visible=False)
-        debug_output = gr.Textbox(label="调试信息", lines=5)
-
-        image_input.change(
-            fn=add_single_image,
-            inputs=[image_input, image_state],
-            outputs=[image_state, image_preview, image_input, selected_image_index],
-        )
-
-        batch_upload.upload(
-            fn=add_batch_images,
-            inputs=[batch_upload, image_state],
-            outputs=[image_state, image_preview, selected_image_index],
-        )
-
-        image_preview.select(
-            fn=select_image,
-            inputs=[],
-            outputs=[selected_image_index],
-        )
-
-        delete_btn.click(
-            fn=delete_selected_image,
-            inputs=[image_state, selected_image_index],
-            outputs=[image_state, image_preview, selected_image_index],
-        )
-
-        clear_btn.click(
-            fn=clear_images,
-            inputs=[],
-            outputs=[image_state, image_preview, selected_image_index],
-        )
-
-        enable_ocr.change(
-            fn=toggle_ocr_output,
-            inputs=[enable_ocr],
-            outputs=[ocr_output],
-        )
+        image_input.change(fn=add_single_image, inputs=[image_input, image_state], outputs=[image_state, image_preview, image_input, selected_image_index])
+        batch_upload.upload(fn=add_batch_images, inputs=[batch_upload, image_state], outputs=[image_state, image_preview, selected_image_index])
+        image_preview.select(fn=select_image, inputs=[], outputs=[selected_image_index])
+        delete_btn.click(fn=delete_selected_image, inputs=[image_state, selected_image_index], outputs=[image_state, image_preview, selected_image_index])
+        clear_btn.click(fn=clear_images, inputs=[], outputs=[image_state, image_preview, selected_image_index])
+        enable_ocr.change(fn=toggle_ocr_output, inputs=[enable_ocr], outputs=[ocr_output])
 
         submit_event = submit_btn.click(
             fn=run_agent,
-            inputs=[user_text, image_state, enable_ocr, chat_history_state],
+            inputs=[task_dropdown, user_text, image_state, enable_ocr, chat_history_state],
             outputs=[answer, ocr_output, debug_output, chat_history_state],
         )
-
+        submit_done = submit_event.then(
+            fn=clear_composer_after_send,
+            inputs=[],
+            outputs=[user_text, image_state, image_preview, selected_image_index],
+        )
         enter_event = user_text.submit(
             fn=run_agent,
-            inputs=[user_text, image_state, enable_ocr, chat_history_state],
+            inputs=[task_dropdown, user_text, image_state, enable_ocr, chat_history_state],
             outputs=[answer, ocr_output, debug_output, chat_history_state],
         )
-
-        # Gradio 会取消 still running 的流式事件；这里同时更新 UI 状态。
+        enter_done = enter_event.then(
+            fn=clear_composer_after_send,
+            inputs=[],
+            outputs=[user_text, image_state, image_preview, selected_image_index],
+        )
         stop_btn.click(
             fn=mark_generation_stopped,
             inputs=[answer, debug_output],
             outputs=[answer, debug_output],
             cancels=[submit_event, enter_event],
         )
-
+        if not DEBUG_DISABLE_PROFILE_EVENTS:
+            demo.load(
+                fn=initialize_knowledge_drilldown,
+                inputs=[task_dropdown, profile_subject],
+                outputs=[
+                    current_node_id_state,
+                    nav_stack_state,
+                    selected_node_id_state,
+                    current_subject_state,
+                    profile_node_rows_state,
+                    profile_breadcrumb,
+                    profile_node_selector,
+                    profile_node_detail,
+                    back_parent_btn,
+                ],
+            )
     return demo
 
 
 if __name__ == "__main__":
     configure_utf8_runtime()
     ensure_project_dirs()
+    init_db()
     preferred_port = int(os.getenv("GRADIO_SERVER_PORT", "7861"))
     server_port = find_available_port(preferred_port)
-    app = build_ui()
+    app = build_ui_v2()
     app.queue()
     app.launch(
         server_name="0.0.0.0",
         server_port=server_port,
+        debug=True,
+        show_error=True,
         # share=True
         share=False
     )

@@ -1,0 +1,401 @@
+{
+  "task_id": "task_676cec08b012",
+  "task_name": "2027考研机械",
+  "subject": "线性代数",
+  "updated_at": "2026-06-17T09:59:23",
+  "nodes": [
+    {
+      "node_id": "la_01",
+      "title": "行列式",
+      "path": [
+        "线性代数",
+        "行列式"
+      ],
+      "parent_id": "kaoyan_linear_algebra",
+      "children": [
+        "la_01_01",
+        "la_01_02",
+        "la_01_03",
+        "la_01_04"
+      ],
+      "basic_framework": [
+        "行列式定义",
+        "行列式性质",
+        "行列式展开",
+        "克拉默法则"
+      ],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_01_01",
+      "title": "行列式定义",
+      "path": [
+        "线性代数",
+        "行列式",
+        "行列式定义"
+      ],
+      "parent_id": "la_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_01_02",
+      "title": "行列式性质",
+      "path": [
+        "线性代数",
+        "行列式",
+        "行列式性质"
+      ],
+      "parent_id": "la_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_01_03",
+      "title": "行列式展开",
+      "path": [
+        "线性代数",
+        "行列式",
+        "行列式展开"
+      ],
+      "parent_id": "la_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_01_04",
+      "title": "克拉默法则",
+      "path": [
+        "线性代数",
+        "行列式",
+        "克拉默法则"
+      ],
+      "parent_id": "la_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02",
+      "title": "矩阵",
+      "path": [
+        "线性代数",
+        "矩阵"
+      ],
+      "parent_id": "kaoyan_linear_algebra",
+      "children": [
+        "la_02_01",
+        "la_02_02",
+        "la_02_03",
+        "la_02_04",
+        "la_02_05"
+      ],
+      "basic_framework": [
+        "矩阵运算",
+        "逆矩阵",
+        "初等矩阵",
+        "矩阵秩",
+        "分块矩阵"
+      ],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_01",
+      "title": "矩阵运算",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "矩阵运算"
+      ],
+      "parent_id": "la_02",
+      "children": [
+        "la_02_01_01",
+        "la_02_01_02",
+        "la_02_01_03",
+        "la_02_01_04",
+        "la_02_01_05"
+      ],
+      "basic_framework": [
+        "矩阵加法",
+        "矩阵减法",
+        "矩阵乘法",
+        "数乘矩阵",
+        "矩阵转置"
+      ],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_01_01",
+      "title": "矩阵加法",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "矩阵运算",
+        "矩阵加法"
+      ],
+      "parent_id": "la_02_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_01_02",
+      "title": "矩阵减法",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "矩阵运算",
+        "矩阵减法"
+      ],
+      "parent_id": "la_02_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_01_03",
+      "title": "矩阵乘法",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "矩阵运算",
+        "矩阵乘法"
+      ],
+      "parent_id": "la_02_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_01_04",
+      "title": "数乘矩阵",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "矩阵运算",
+        "数乘矩阵"
+      ],
+      "parent_id": "la_02_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_01_05",
+      "title": "矩阵转置",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "矩阵运算",
+        "矩阵转置"
+      ],
+      "parent_id": "la_02_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_02",
+      "title": "逆矩阵",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "逆矩阵"
+      ],
+      "parent_id": "la_02",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_03",
+      "title": "初等矩阵",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "初等矩阵"
+      ],
+      "parent_id": "la_02",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_04",
+      "title": "矩阵秩",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "矩阵秩"
+      ],
+      "parent_id": "la_02",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_02_05",
+      "title": "分块矩阵",
+      "path": [
+        "线性代数",
+        "矩阵",
+        "分块矩阵"
+      ],
+      "parent_id": "la_02",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_03",
+      "title": "向量",
+      "path": [
+        "线性代数",
+        "向量"
+      ],
+      "parent_id": "kaoyan_linear_algebra",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_04",
+      "title": "线性方程组",
+      "path": [
+        "线性代数",
+        "线性方程组"
+      ],
+      "parent_id": "kaoyan_linear_algebra",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_05",
+      "title": "特征值与特征向量",
+      "path": [
+        "线性代数",
+        "特征值与特征向量"
+      ],
+      "parent_id": "kaoyan_linear_algebra",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "la_06",
+      "title": "二次型",
+      "path": [
+        "线性代数",
+        "二次型"
+      ],
+      "parent_id": "kaoyan_linear_algebra",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    }
+  ]
+}

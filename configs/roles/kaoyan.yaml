@@ -1,0 +1,5 @@
+role_id: kaoyan
+role_name: 考研
+default_answer_style: 分步骤、重考点、重题型、重易错点、重复习建议
+default_subjects: [高等数学, 线性代数, 概率论, 英语, 机械原理]
+default_skills: [math, english, vehicle_engineering, learning_profile, mistake_book, review_planner]

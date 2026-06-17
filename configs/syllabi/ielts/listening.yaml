@@ -1,0 +1,7 @@
+subject: Listening
+syllabus_id: ielts_listening
+nodes:
+  - {id: il_01, name: Section 1 日常场景}
+  - {id: il_02, name: Section 2 介绍说明}
+  - {id: il_03, name: Section 3 学术讨论}
+  - {id: il_04, name: Section 4 学术讲座}

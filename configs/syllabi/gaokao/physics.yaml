@@ -1,0 +1,8 @@
+subject: 物理
+syllabus_id: gaokao_physics
+nodes:
+  - {id: gkp_01, name: 力学}
+  - {id: gkp_02, name: 电磁学}
+  - {id: gkp_03, name: 热学}
+  - {id: gkp_04, name: 光学}
+  - {id: gkp_05, name: 原子物理}

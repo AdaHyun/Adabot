@@ -1,0 +1,5 @@
+role_id: postgraduate
+role_name: 研究生
+default_answer_style: 研究导向、论文导向、复现导向、方法和实验分析优先
+default_subjects: [论文阅读, 文献综述, 实验复现, 学术写作, 项目调试]
+default_skills: [paper_reading, project_debugger, english, learning_profile, mistake_book, review_planner]

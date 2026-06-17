@@ -1,0 +1,9 @@
+subject: 论文阅读
+syllabus_id: postgraduate_paper_reading
+nodes:
+  - {id: pgp_01, name: 摘要与贡献}
+  - {id: pgp_02, name: 相关工作}
+  - {id: pgp_03, name: 方法}
+  - {id: pgp_04, name: 实验}
+  - {id: pgp_05, name: 消融分析}
+  - {id: pgp_06, name: 局限性}

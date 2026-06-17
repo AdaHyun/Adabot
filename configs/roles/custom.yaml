@@ -1,0 +1,5 @@
+role_id: custom
+role_name: 自定义
+default_answer_style: 根据用户输入的学习目标和科目自适应
+default_subjects: []
+default_skills: [math, english, vehicle_engineering, general, learning_profile, mistake_book, review_planner]

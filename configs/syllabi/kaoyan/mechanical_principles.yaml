@@ -1,0 +1,17 @@
+subject: 机械原理
+syllabus_id: kaoyan_mechanical_principles
+nodes:
+  - id: mp_01
+    name: 平面机构的结构分析
+    children:
+      - {id: mp_01_01, name: 基本概念与自由度计算}
+      - {id: mp_01_02, name: 机构组成}
+      - {id: mp_01_03, name: 运动副}
+      - {id: mp_01_04, name: 机构运动简图}
+      - {id: mp_01_05, name: 机构具有确定运动的条件}
+  - {id: mp_02, name: 平面连杆机构}
+  - {id: mp_03, name: 凸轮机构}
+  - {id: mp_04, name: 齿轮机构}
+  - {id: mp_05, name: 轮系}
+  - {id: mp_06, name: 机械平衡}
+  - {id: mp_07, name: 机械效率}

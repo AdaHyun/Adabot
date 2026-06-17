@@ -1,0 +1,8 @@
+subject: 英语
+syllabus_id: gaokao_english
+nodes:
+  - {id: gke_01, name: 词汇}
+  - {id: gke_02, name: 语法填空}
+  - {id: gke_03, name: 阅读理解}
+  - {id: gke_04, name: 完形填空}
+  - {id: gke_05, name: 写作}

@@ -1,0 +1,65 @@
+{
+  "task_id": "task_a66b86447b9a",
+  "task_name": "test-mech",
+  "subject": "????",
+  "updated_at": "2026-06-17T09:12:02",
+  "nodes": [
+    {
+      "node_id": "note_5432684",
+      "title": "????",
+      "path": [
+        "????",
+        "????"
+      ],
+      "parent_id": "note_3858747",
+      "children": [],
+      "basic_framework": [],
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "2026-06-17T09:12:02",
+      "mastery_status": "已接触",
+      "summary": "????",
+      "evidence": "来自用户笔记标题或条目",
+      "source_type": "user_note",
+      "source_file": "20260617_091202_pasted_note.txt"
+    },
+    {
+      "node_id": "note_3976155",
+      "title": "?????????",
+      "path": [
+        "????",
+        "?????????"
+      ],
+      "parent_id": "note_3858747",
+      "children": [],
+      "basic_framework": [],
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "2026-06-17T09:12:02",
+      "mastery_status": "已接触",
+      "summary": "?????????",
+      "evidence": "来自用户笔记标题或条目",
+      "source_type": "user_note",
+      "source_file": "20260617_091202_pasted_note.txt"
+    },
+    {
+      "node_id": "note_3693078",
+      "title": "????? ???",
+      "path": [
+        "????",
+        "????? ???"
+      ],
+      "parent_id": "note_3858747",
+      "children": [],
+      "basic_framework": [],
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "2026-06-17T09:12:02",
+      "mastery_status": "已接触",
+      "summary": "????? ???",
+      "evidence": "来自用户笔记标题或条目",
+      "source_type": "user_note",
+      "source_file": "20260617_091202_pasted_note.txt"
+    }
+  ]
+}

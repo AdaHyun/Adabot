@@ -371,6 +371,7 @@ def build_prompt(
     image_count: int = 0,
     chat_history_text: str = "",
     long_term_memory_text: str = "",
+    learning_context_text: str = "",
 ) -> str:
     """
     构建最终发送给模型的 prompt。
@@ -381,11 +382,24 @@ def build_prompt(
         image_instruction = f"用户上传了 {image_count} 张图片。请优先直接阅读图片内容；OCR 只作为辅助参考。"
     else:
         image_instruction = "用户没有上传图片，请仅根据文本和 OCR 文本回答。"
+    learning_block = learning_context_text or "未启用学习任务上下文。"
 
     return f"""你是 Adabot，一个面向考研与英语考试的多模态学习 Agent。
 
 【输入说明】
 {image_instruction}
+
+【当前学习任务上下文】
+{learning_block}
+
+请根据当前学习任务调整回答深度：
+1. 考研角色强调考点、步骤、题型、易错点和复习建议。
+2. 高考角色强调基础理解、题型和解题规范。
+3. 雅思角色结合评分标准、表达、语法、逻辑和词汇。
+4. 研究生角色强调论文逻辑、方法、实验、复现和研究价值。
+5. 本科生角色强调课程知识、作业思路和期末复习。
+6. 自定义角色根据用户目标调整。
+回答最后可以简短指出该问题大概属于哪个知识点。
 
 【回答要求】
 1. 使用中文为主回答；如果用户明确要求英文或英语写作，请给出英文内容并附中文解释。

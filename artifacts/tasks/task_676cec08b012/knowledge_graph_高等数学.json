@@ -1,0 +1,313 @@
+{
+  "task_id": "task_676cec08b012",
+  "task_name": "2027考研机械",
+  "subject": "高等数学",
+  "updated_at": "2026-06-17T09:59:23",
+  "nodes": [
+    {
+      "node_id": "am_01",
+      "title": "函数极限连续",
+      "path": [
+        "高等数学",
+        "函数极限连续"
+      ],
+      "parent_id": "kaoyan_advanced_math",
+      "children": [
+        "am_01_01",
+        "am_01_02",
+        "am_01_03"
+      ],
+      "basic_framework": [
+        "函数",
+        "极限",
+        "连续"
+      ],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_01_01",
+      "title": "函数",
+      "path": [
+        "高等数学",
+        "函数极限连续",
+        "函数"
+      ],
+      "parent_id": "am_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_01_02",
+      "title": "极限",
+      "path": [
+        "高等数学",
+        "函数极限连续",
+        "极限"
+      ],
+      "parent_id": "am_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_01_03",
+      "title": "连续",
+      "path": [
+        "高等数学",
+        "函数极限连续",
+        "连续"
+      ],
+      "parent_id": "am_01",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_02",
+      "title": "一元函数微分学",
+      "path": [
+        "高等数学",
+        "一元函数微分学"
+      ],
+      "parent_id": "kaoyan_advanced_math",
+      "children": [
+        "am_02_01",
+        "am_02_02",
+        "am_02_03"
+      ],
+      "basic_framework": [
+        "导数",
+        "微分",
+        "中值定理"
+      ],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_02_01",
+      "title": "导数",
+      "path": [
+        "高等数学",
+        "一元函数微分学",
+        "导数"
+      ],
+      "parent_id": "am_02",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_02_02",
+      "title": "微分",
+      "path": [
+        "高等数学",
+        "一元函数微分学",
+        "微分"
+      ],
+      "parent_id": "am_02",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_02_03",
+      "title": "中值定理",
+      "path": [
+        "高等数学",
+        "一元函数微分学",
+        "中值定理"
+      ],
+      "parent_id": "am_02",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_03",
+      "title": "一元函数积分学",
+      "path": [
+        "高等数学",
+        "一元函数积分学"
+      ],
+      "parent_id": "kaoyan_advanced_math",
+      "children": [
+        "am_03_01",
+        "am_03_02",
+        "am_03_03"
+      ],
+      "basic_framework": [
+        "不定积分",
+        "定积分",
+        "反常积分"
+      ],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_03_01",
+      "title": "不定积分",
+      "path": [
+        "高等数学",
+        "一元函数积分学",
+        "不定积分"
+      ],
+      "parent_id": "am_03",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_03_02",
+      "title": "定积分",
+      "path": [
+        "高等数学",
+        "一元函数积分学",
+        "定积分"
+      ],
+      "parent_id": "am_03",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_03_03",
+      "title": "反常积分",
+      "path": [
+        "高等数学",
+        "一元函数积分学",
+        "反常积分"
+      ],
+      "parent_id": "am_03",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_04",
+      "title": "多元函数微分学",
+      "path": [
+        "高等数学",
+        "多元函数微分学"
+      ],
+      "parent_id": "kaoyan_advanced_math",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_05",
+      "title": "重积分",
+      "path": [
+        "高等数学",
+        "重积分"
+      ],
+      "parent_id": "kaoyan_advanced_math",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_06",
+      "title": "无穷级数",
+      "path": [
+        "高等数学",
+        "无穷级数"
+      ],
+      "parent_id": "kaoyan_advanced_math",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "syllabus"
+    },
+    {
+      "node_id": "am_07",
+      "title": "微分方程",
+      "path": [
+        "高等数学",
+        "微分方程"
+      ],
+      "parent_id": "kaoyan_advanced_math",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "已接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "2026-06-16T16:58:00",
+      "summary": "",
+      "source": "syllabus"
+    }
+  ]
+}

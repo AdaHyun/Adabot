@@ -40,6 +40,16 @@ SKILL_KEYWORDS: Dict[str, List[str]] = {
     "vehicle_engineering": [
         "车辆",
         "汽车",
+        "机械",
+        "机械原理",
+        "机械结构",
+        "机构",
+        "平面机构",
+        "机构结构",
+        "结构分析",
+        "自由度",
+        "构件",
+        "运动副",
         "发动机",
         "底盘",
         "变速器",
@@ -179,3 +189,54 @@ register_skill("math", math_skill, SKILL_KEYWORDS["math"])
 register_skill("vehicle_engineering", vehicle_engineering_skill, SKILL_KEYWORDS["vehicle_engineering"])
 register_skill("english", english_skill, SKILL_KEYWORDS["english"])
 register_skill("general", general_skill)
+
+
+def paper_reading_skill(text: str) -> str:
+    return (
+        "[论文精读 Skill]\n"
+        "请围绕论文问题、核心贡献、方法结构、实验设置、指标结果、局限性和可复现步骤来回答。"
+    )
+
+
+def project_debugger_skill(text: str) -> str:
+    return (
+        "[项目调试 Skill]\n"
+        "请先定位报错位置和根因，再给出最小可执行修复步骤；涉及命令时说明运行目录和前置条件。"
+    )
+
+
+def crawler_assistant_skill(text: str) -> str:
+    return (
+        "[爬虫助手 Skill]\n"
+        "请从目标字段、请求解析、断点续爬、去重、导出和异常处理角度给出实现建议。"
+    )
+
+
+def interview_coach_skill(text: str) -> str:
+    return (
+        "[面试教练 Skill]\n"
+        "请把答案整理成面试可表达版本：先一句话结论，再分点说明，最后补充可能追问。"
+    )
+
+
+def socratic_tutor_skill(text: str) -> str:
+    return (
+        "[苏格拉底导师 Skill]\n"
+        "请优先用问题引导用户发现关键条件，并在必要时给出提示和阶段性总结。"
+    )
+
+
+def background_skill(text: str) -> str:
+    return "[后台辅助 Skill]\n该能力主要用于学习画像、错题本、复习计划或历史记忆检索。"
+
+
+register_skill("paper_reading", paper_reading_skill, ["论文", "paper", "精读", "method", "benchmark", "实验", "复现"])
+register_skill("project_debugger", project_debugger_skill, ["报错", "error", "traceback", "conda", "pip", "git", "docker", "vscode"])
+register_skill("crawler_assistant", crawler_assistant_skill, ["爬虫", "抓取", "解析", "JSONL", "checkpoint", "字段", "Excel"])
+register_skill("interview_coach", interview_coach_skill, ["面试", "怎么说", "口语版", "自我介绍", "项目介绍", "追问"])
+register_skill("socratic_tutor", socratic_tutor_skill, ["引导我", "启发", "苏格拉底", "别直接给答案"])
+register_skill("learning_profile", background_skill, ["学习画像", "知识图谱", "学习进度", "我学到哪", "还有什么没学", "复习建议"])
+register_skill("mistake_book", background_skill, ["错题", "我错了", "不会", "不懂", "加入错题本", "再讲一遍"])
+register_skill("review_planner", background_skill, ["复习计划", "今天学什么", "一周计划", "备考计划", "复习安排"])
+register_skill("mini_quiz", background_skill, ["测试我", "出题", "小测", "检验", "批改", "练习题"])
+register_skill("memory_search", background_skill, ["我之前问过", "历史问题", "以前的问题", "复习以前", "查一下我问过"])
