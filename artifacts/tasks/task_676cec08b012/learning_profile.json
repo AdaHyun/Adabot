@@ -1,7 +1,7 @@
 {
   "task_id": "task_676cec08b012",
   "task_name": "2027考研机械",
-  "updated_at": "2026-06-17T09:59:23",
+  "updated_at": "2026-06-17T16:34:59",
   "subject_progress": {
     "高等数学": {
       "touched_nodes": 1,
@@ -22,8 +22,11 @@
       "missing_prerequisites": []
     },
     "英语": {
-      "touched_nodes": 0,
-      "weak_nodes": [],
+      "touched_nodes": 2,
+      "weak_nodes": [
+        "[\"英语\", \"词汇\"]",
+        "[\"英语\", \"翻译\"]"
+      ],
       "mastered_nodes": [],
       "missing_prerequisites": []
     },

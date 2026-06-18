@@ -1,8 +1,76 @@
 {
   "task_id": "task_676cec08b012",
   "task_name": "2027考研机械",
-  "updated_at": "2026-06-17T09:59:23",
+  "updated_at": "2026-06-17T16:34:59",
   "items": [
+    {
+      "question_id": "q_7ab785d88685",
+      "created_at": "2026-06-17T16:34:58",
+      "user_question": "翻译成英文：初步完成用户的知识画像，错题集，知识框架等功能的基础形态",
+      "answer_summary": "**英文翻译：** > **The basic framework for features such as user knowledge profiling, error question collections, and knowledge frameworks has been preliminarily completed.** --- ### 💡 ...",
+      "full_answer": "**英文翻译：**\n\n> **The basic framework for features such as user knowledge profiling, error question collections, and knowledge frameworks has been preliminarily completed.**\n\n---\n\n### 💡 解析与优化建议（针对考研英语/学术表达）\n\n这句话通常出现在**项目报告、论文摘要或系统开发文档**中。为了适应不同的语境，提供以下两种微调版本：\n\n#### 1. 更学术/正式（适合论文或正式报告）\n> \"The **fundamental architecture** for core functionalities—including **user knowledge profiling**, **mistake tracking**, and **knowledge structuring**—has been **initially established**.\"\n> *   **亮点**：用 `fundamental architecture` 替代 `basic framework` 更显专业；`initially established` 比 `preliminarily completed` 更强调“建立”的过程。\n\n#### 2. 更简洁/工程化（适合开发日志或PPT）\n> \"Completed the **MVP (Minimum Viable Product)** for user knowledge profiles, error logs, and knowledge maps.\"\n> *   **亮点**：使用 `MVP` 概念，`error logs` 对应错题集，`knowledge maps` 对应知识框架，更符合互联网/软件工程语境。\n\n---\n\n### 📚 核心词汇积累（考研/四六级高频词）\n\n| 中文 | 英文对应 | 备注 |\n| :--- | :--- | :--- |\n| **初步完成** | preliminarily complete / initially establish | `Preliminary` 是考研阅读常见词，意为“初步的、预备的”。 |\n| **知识画像** | knowledge profiling / user persona | `Profile` 作动词意为“描绘...的特征”，在数据分析中常用。 |\n| **错题集** | error question collection / mistake log | `Log` 指日志、记录，常用于计算机语境。 |\n| **知识框架** | knowledge framework / knowledge structure | `Framework` 指框架、结构体系。 |\n| **基础形态** | basic form / fundamental shape / initial version | 在软件语境下，常用 `initial version` 或 `prototype` (原型)。 |\n\n---\n\n**所属知识点**：英语一/英语二 > 翻译题型 > 科技文献翻译技巧",
+      "subject": "英语",
+      "skill": "general",
+      "knowledge_path": [
+        "英语",
+        "词汇"
+      ],
+      "node_id": "ke_01",
+      "is_wrong_question": true,
+      "need_review": false,
+      "task_id": "task_676cec08b012"
+    },
+    {
+      "question_id": "q_bf9c2549927c",
+      "created_at": "2026-06-17T16:08:25",
+      "user_question": "翻译成英文：初步完成用户的知识画像，错题集，知识框架等功能的基础形态",
+      "answer_summary": "模型服务尚未配置。请在启动 python main.py 的同一个 PowerShell 中设置： $env:QWEN_API_KEY='你的硅基流动 API Key' $env:QWEN_BASE_URL='https://api.siliconflow.cn/v1' $env:QWEN_MODEL='硅基流动控制台里的多模态模型 ID'",
+      "full_answer": "模型服务尚未配置。请在启动 python main.py 的同一个 PowerShell 中设置：\n\n$env:QWEN_API_KEY='你的硅基流动 API Key'\n$env:QWEN_BASE_URL='https://api.siliconflow.cn/v1'\n$env:QWEN_MODEL='硅基流动控制台里的多模态模型 ID'",
+      "subject": "英语",
+      "skill": "english",
+      "knowledge_path": [
+        "英语",
+        "翻译"
+      ],
+      "node_id": "ke_04",
+      "is_wrong_question": true,
+      "need_review": false,
+      "task_id": "task_676cec08b012"
+    },
+    {
+      "question_id": "q_8c51e3c39657",
+      "created_at": "2026-06-17T16:07:58",
+      "user_question": "给我翻译一下，翻译成英文：初步完成用户的知识画像，错题集，知识框架等功能的基础形态",
+      "answer_summary": "模型服务尚未配置。请在启动 python main.py 的同一个 PowerShell 中设置： $env:QWEN_API_KEY='你的硅基流动 API Key' $env:QWEN_BASE_URL='https://api.siliconflow.cn/v1' $env:QWEN_MODEL='硅基流动控制台里的多模态模型 ID'",
+      "full_answer": "模型服务尚未配置。请在启动 python main.py 的同一个 PowerShell 中设置：\n\n$env:QWEN_API_KEY='你的硅基流动 API Key'\n$env:QWEN_BASE_URL='https://api.siliconflow.cn/v1'\n$env:QWEN_MODEL='硅基流动控制台里的多模态模型 ID'",
+      "subject": "英语",
+      "skill": "english",
+      "knowledge_path": [
+        "英语",
+        "翻译"
+      ],
+      "node_id": "ke_04",
+      "is_wrong_question": true,
+      "need_review": false,
+      "task_id": "task_676cec08b012"
+    },
+    {
+      "question_id": "q_a807f8a95cef",
+      "created_at": "2026-06-17T16:07:30",
+      "user_question": "给我翻译一下，翻译成英文：初步完成用户的知识画像，错题集，知识框架等功能的基础形态",
+      "answer_summary": "模型服务尚未配置。请在启动 python main.py 的同一个 PowerShell 中设置： $env:QWEN_API_KEY='你的硅基流动 API Key' $env:QWEN_BASE_URL='https://api.siliconflow.cn/v1' $env:QWEN_MODEL='硅基流动控制台里的多模态模型 ID'",
+      "full_answer": "模型服务尚未配置。请在启动 python main.py 的同一个 PowerShell 中设置：\n\n$env:QWEN_API_KEY='你的硅基流动 API Key'\n$env:QWEN_BASE_URL='https://api.siliconflow.cn/v1'\n$env:QWEN_MODEL='硅基流动控制台里的多模态模型 ID'",
+      "subject": "英语",
+      "skill": "english",
+      "knowledge_path": [
+        "英语",
+        "翻译"
+      ],
+      "node_id": "ke_04",
+      "is_wrong_question": true,
+      "need_review": false,
+      "task_id": "task_676cec08b012"
+    },
     {
       "question_id": "q_a24a4f858d1f",
       "created_at": "2026-06-17T09:59:23",

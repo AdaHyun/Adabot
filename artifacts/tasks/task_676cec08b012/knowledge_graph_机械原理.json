@@ -2,7 +2,7 @@
   "task_id": "task_676cec08b012",
   "task_name": "2027考研机械",
   "subject": "机械原理",
-  "updated_at": "2026-06-17T09:59:23",
+  "updated_at": "2026-06-17T16:34:59",
   "nodes": [
     {
       "node_id": "mp_01",
@@ -11,7 +11,7 @@
         "机械原理",
         "平面机构的结构分析"
       ],
-      "parent_id": "kaoyan_mechanical_principles",
+      "parent_id": "",
       "children": [
         "mp_01_01",
         "mp_01_02",
@@ -130,7 +130,7 @@
         "机械原理",
         "平面连杆机构"
       ],
-      "parent_id": "kaoyan_mechanical_principles",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -147,7 +147,7 @@
         "机械原理",
         "凸轮机构"
       ],
-      "parent_id": "kaoyan_mechanical_principles",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -164,7 +164,7 @@
         "机械原理",
         "齿轮机构"
       ],
-      "parent_id": "kaoyan_mechanical_principles",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -181,7 +181,7 @@
         "机械原理",
         "轮系"
       ],
-      "parent_id": "kaoyan_mechanical_principles",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -198,7 +198,7 @@
         "机械原理",
         "机械平衡"
       ],
-      "parent_id": "kaoyan_mechanical_principles",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -215,7 +215,7 @@
         "机械原理",
         "机械效率"
       ],
-      "parent_id": "kaoyan_mechanical_principles",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",

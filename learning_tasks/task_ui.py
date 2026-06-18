@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from pathlib import Path
+import uuid
 import json
 import time
 import traceback
@@ -34,15 +35,20 @@ ROLE_LABEL_TO_ID = {
 }
 
 
-def task_choices() -> list[str]:
+def task_choices() -> list[tuple[str, str]]:
     tasks = list_tasks()
     if not tasks:
         tasks = [get_or_create_default_task()]
-    return [f"{_display_task_name(task.task_name, task.id)} ({task.id})" for task in tasks]
+    return [(_display_task_name(task.task_name, task.id), task.id) for task in tasks]
 
 
-def parse_task_id(choice: str | None) -> str:
-    if choice and "(" in choice and choice.endswith(")"):
+def parse_task_id(choice: str | tuple[str, str] | None) -> str:
+    if isinstance(choice, (list, tuple)) and len(choice) >= 2:
+        return str(choice[1])
+    if choice and str(choice).startswith("task_"):
+        return str(choice)
+    if choice and "(" in str(choice) and str(choice).endswith(")"):
+        choice = str(choice)
         return choice.rsplit("(", 1)[-1][:-1]
     task = get_active_task() or get_or_create_default_task()
     return task.id
@@ -50,7 +56,7 @@ def parse_task_id(choice: str | None) -> str:
 
 def active_task_label() -> str:
     task = get_active_task() or get_or_create_default_task()
-    return f"当前激活任务：{_display_task_name(task.task_name, task.id)} / {task.role_type} / {task.id}"
+    return f"当前激活任务：{_display_task_name(task.task_name, task.id)} / {task.role_type}"
 
 
 def refresh_task_dropdown():
@@ -58,7 +64,7 @@ def refresh_task_dropdown():
 
     choices = task_choices()
     active = get_active_task() or get_or_create_default_task()
-    value = next((item for item in choices if item.endswith(f"({active.id})")), choices[0] if choices else None)
+    value = active.id
     return gr.update(choices=choices, value=value), active_task_label()
 
 
@@ -117,7 +123,7 @@ def create_task_from_form(
     if first:
         set_active_task(task.id)
     choices = task_choices()
-    value = next((item for item in choices if item.endswith(f"({task.id})")), choices[0])
+    value = task.id
     return gr.update(choices=choices, value=value), f"已创建任务：{_display_task_name(task.task_name, task.id)}\n\n{active_task_label()}", render_task_list(), load_recent_chat_messages(task.id)
 
 
@@ -129,7 +135,7 @@ def render_task_list() -> str:
     for task in tasks:
         marker = "active" if task.is_active else "inactive"
         lines.append(
-            f"- [{marker}] **{_display_task_name(task.task_name, task.id)}** / {task.role_type} / `{task.id}`\n"
+            f"- [{marker}] **{_display_task_name(task.task_name, task.id)}** / {task.role_type}\n"
             f"  - 目标: {task.goal_description or '-'}\n"
             f"  - 科目: {', '.join(task.subjects) or '-'}"
         )
@@ -142,7 +148,15 @@ def subject_choices_for_task(choice: str):
     task = get_task(parse_task_id(choice)) or get_or_create_default_task()
     subjects = task.subjects or _fallback_subjects(task.role_type)
     subjects = [str(item) for item in subjects if str(item).strip()] or ["通用"]
-    return gr.update(choices=subjects, value=subjects[0])
+    return gr.update(choices=[(item, item) for item in subjects], value=subjects[0])
+
+
+def subject_choices_for_task_pair(choice: str):
+    task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    subjects = task.subjects or _fallback_subjects(task.role_type)
+    subjects = [str(item) for item in subjects if str(item).strip()] or ["通用"]
+    choices = [(item, item) for item in subjects]
+    return gr.update(choices=choices, value=subjects[0]), gr.update(choices=choices, value=subjects[0])
 
 
 def render_profile_ui(choice: str, subject: str, view_label: str) -> str:
@@ -154,13 +168,144 @@ def render_profile_ui(choice: str, subject: str, view_label: str) -> str:
 ROOT_NODE_ID = "__root__"
 
 
-NODE_TABLE_HEADERS = ["知识点", "状态", "提问数", "类型", "ID"]
+NODE_TABLE_HEADERS = ["知识点", "状态", "提问数"]
 
 
 def _table_update(rows: list[list[str]]):
     import gradio as gr
 
-    return gr.update(value=rows)
+    return gr.update(value=_display_rows(rows))
+
+
+# def render_profile_chart(choice: str, subject: str, view_label: str) -> str:
+    task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    subject = subject or (task.subjects[0] if task.subjects else "通用")
+    nodes = list_all_nodes(task, subject)
+    if not nodes:
+        return "<div class='node-detail-empty'>暂无知识图谱数据。</div>"
+    graph = _echarts_graph_payload(task, subject, nodes)
+    if view_label == "思维导图":
+        option = _mindmap_option(graph)
+    elif view_label == "知识网络图谱":
+        option = _network_option(graph)
+    else:
+        option = _tree_option(graph)
+    chart_id = f"profile_chart_{uuid.uuid4().hex}"
+    option_json = json.dumps(option, ensure_ascii=False)
+    return f"""
+<div id="{chart_id}" style="width:100%;height:560px;"></div>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>
+
+(function initChart() {{
+  var el = document.getElementById("{chart_id}");
+  if (!el) return;
+  
+  // 如果 ECharts 还没下载完毕，等待 100 毫秒后重试
+  if (typeof window.echarts === 'undefined') {{
+      setTimeout(initChart, 100);
+      return;
+  }}
+  
+  var chart = window.echarts.init(el);
+  chart.setOption({option_json});
+  
+  // 延迟 300ms 重算尺寸，防止 Gradio Tab 切换动画挤压导致 0x0 大小
+  setTimeout(function() {{ chart.resize(); }}, 300);
+  
+  window.addEventListener("resize", function() {{ chart.resize(); }});
+}})();
+
+
+# (function() {{
+#   var el = document.getElementById("{chart_id}");
+#   if (!el || !window.echarts) return;
+#   var chart = window.echarts.init(el);
+#   chart.setOption({option_json});
+#   window.addEventListener("resize", function() {{ chart.resize(); }});
+# }})();
+
+
+</script>
+"""
+
+def render_profile_chart(choice: str, subject: str, view_label: str) -> str:
+    import json
+    import uuid
+    import html
+    from .task_store import get_or_create_default_task, get_task
+    from .knowledge_graph_store import list_all_nodes
+    
+    task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    subject = subject or (task.subjects[0] if task.subjects else "通用")
+    nodes = list_all_nodes(task, subject)
+    
+    if not nodes:
+        return "<div class='node-detail-empty'>暂无知识图谱数据。</div>"
+        
+    graph = _echarts_graph_payload(task, subject, nodes)
+    
+    if view_label == "思维导图":
+        option = _mindmap_option(graph)
+    elif view_label == "知识网络图谱":
+        option = _network_option(graph)
+    else:
+        option = _tree_option(graph)
+        
+    option_json = json.dumps(option, ensure_ascii=False)
+    
+    # 终极修复：构建一个完整的内部独立网页，避开 Svelte 的 JS 执行拦截
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+        <style>
+            html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }}
+            #main {{ width: 100%; height: 560px; }}
+        </style>
+    </head>
+    <body>
+        <div id="main"></div>
+        <script>
+            // 等待页面完全加载后再初始化 ECharts
+            window.onload = function() {{
+                var chartDom = document.getElementById('main');
+                var myChart = echarts.init(chartDom);
+                var option = {option_json};
+                myChart.setOption(option);
+                
+                // 监听窗口尺寸变化
+                window.addEventListener('resize', function() {{
+                    myChart.resize();
+                }});
+            }};
+        </script>
+    </body>
+    </html>
+    """
+    
+    # 将 HTML 转义并放入 iframe 的 srcdoc 属性中
+    escaped_html = html.escape(html_content)
+    return f'<iframe srcdoc="{escaped_html}" style="width: 100%; height: 580px; border: none; overflow: hidden; border-radius: 8px;"></iframe>'
+
+def render_profile_chart_if_loaded(loaded: bool, choice: str, subject: str, view_label: str) -> str:
+    if not loaded:
+        return _profile_chart_placeholder()
+    return render_profile_chart(choice, subject, view_label)
+
+
+def mark_profile_loaded() -> bool:
+    return True
+
+
+def reset_profile_loaded():
+    return False, _profile_chart_placeholder()
+
+
+def _profile_chart_placeholder() -> str:
+    return "<div class='node-detail-empty'>请点击“刷新画像”加载图谱。</div>"
 
 
 def initialize_knowledge_drilldown(choice: str, subject: str):
@@ -181,6 +326,7 @@ def initialize_knowledge_drilldown(choice: str, subject: str):
         _breadcrumb_html(task, subject, ROOT_NODE_ID),
         _table_update(rows),
         _level_overview_html(task, subject, ROOT_NODE_ID),
+        gr.update(interactive=False),
         gr.update(interactive=False),
     )
 
@@ -204,72 +350,84 @@ def on_knowledge_node_click(
 
     if not node_id:
         debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s empty")
-        rows = list(current_rows or [])
         return (
-            current_node_id,
-            stack,
             "",
-            rows,
-            _table_update(rows),
             _breadcrumb_html(task, subject, current_node_id),
             _level_overview_html(task, subject, current_node_id),
-            gr.update(interactive=bool(stack)),
+            gr.update(interactive=False),
         )
 
     node = get_node(task, subject, node_id)
 
     if not node:
         debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s missing node={node_id}")
-        rows = list(current_rows or [])
         return (
-            current_node_id,
-            stack,
             "",
-            rows,
-            _table_update(rows),
             _breadcrumb_html(task, subject, current_node_id),
             "<div class='node-detail-empty'>未找到该知识点。</div>",
-            gr.update(interactive=bool(stack)),
+            gr.update(interactive=False),
         )
 
     children = list_children(task, subject, node_id)
 
     if children:
-        new_stack = list(stack)
-        new_stack.append(current_node_id)
-        rows = _current_level_rows(task, subject, node_id)
-
-        debug_log(
-            "on_knowledge_node_click",
-            f"END elapsed={time.time() - t0:.2f}s drilldown node={node_id} rows={len(rows)}",
-        )
-
+        debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s selected parent node={node_id}")
         return (
             node_id,
-            new_stack,
-            "",
-            rows,
-            _table_update(rows),
-            _breadcrumb_html(task, subject, node_id),
+            f"### 当前选择：{_esc(node.get('title') or '')}",
             _level_overview_html(task, subject, node_id),
             gr.update(interactive=True),
         )
 
     debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s detail node={node_id}")
-    rows = list(current_rows or [])
-
     return (
-        current_node_id,
-        stack,
         node_id,
-        rows,
-        _table_update(rows),
-        _breadcrumb_html(task, subject, current_node_id),
+        f"### 当前选择：{_esc(node.get('title') or '')}",
         render_knowledge_node_detail(task, subject, node_id),
-        gr.update(interactive=bool(stack)),
+        gr.update(interactive=False),
     )
 
-def on_back_to_parent(current_node_id: str, nav_stack: list[str] | None, choice: str, subject: str, selected_node_id: str | None):
+def on_enter_child_node(selected_node_id: str | None, current_node_id: str, nav_stack: list[str] | None, choice: str, subject: str):
+    import gradio as gr
+
+    debug_log("on_enter_child_node", "START")
+    t0 = time.time()
+    task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    subject = subject or (task.subjects[0] if task.subjects else "通用")
+    node_id = selected_node_id or ""
+    children = list_children(task, subject, node_id)
+    if not node_id or not children:
+        rows = _current_level_rows(task, subject, current_node_id or ROOT_NODE_ID)
+        return (
+            current_node_id or ROOT_NODE_ID,
+            list(nav_stack or []),
+            "",
+            rows,
+            _table_update(rows),
+            _breadcrumb_html(task, subject, current_node_id or ROOT_NODE_ID),
+            _level_overview_html(task, subject, current_node_id or ROOT_NODE_ID),
+            gr.update(interactive=bool(nav_stack)),
+            gr.update(interactive=False),
+        )
+
+    stack = list(nav_stack or [])
+    stack.append(current_node_id or ROOT_NODE_ID)
+    rows = _current_level_rows(task, subject, node_id)
+    debug_log("on_enter_child_node", f"END elapsed={time.time() - t0:.2f}s current={node_id} rows={len(rows)}")
+    return (
+        node_id,
+        stack,
+        "",
+        rows,
+        _table_update(rows),
+        _breadcrumb_html(task, subject, node_id),
+        _level_overview_html(task, subject, node_id),
+        gr.update(interactive=True),
+        gr.update(interactive=False),
+    )
+
+
+def on_back_to_parent(current_node_id: str, nav_stack: list[str] | None, choice: str, subject: str):
     import gradio as gr
 
     debug_log("on_back_to_parent", "START")
@@ -282,21 +440,17 @@ def on_back_to_parent(current_node_id: str, nav_stack: list[str] | None, choice:
     else:
         current = stack.pop()
     rows = _current_level_rows(task, subject, current)
-    detail = (
-        render_knowledge_node_detail(task, subject, selected_node_id)
-        if selected_node_id
-        else _level_overview_html(task, subject, current)
-    )
     debug_log("on_back_to_parent", f"END elapsed={time.time() - t0:.2f}s current={current} rows={len(rows)}")
     return (
         current,
         stack,
-        selected_node_id or "",
+        "",
         rows,
         _table_update(rows),
         _breadcrumb_html(task, subject, current),
-        detail,
+        _level_overview_html(task, subject, current),
         gr.update(interactive=bool(stack)),
+        gr.update(interactive=False),
     )
 
 def render_knowledge_node_detail(task: object, subject: str, node_id: str | None) -> str:
@@ -320,7 +474,6 @@ def render_knowledge_node_detail(task: object, subject: str, node_id: str | None
     return f"""
 <div class="node-detail-panel">
   <h2>{_esc(node.get('title'))}</h2>
-  <p class="muted">路径：{_esc(' > '.join(path))}</p>
   <h3>1. 基础知识框架</h3>
   <ul>{''.join(f'<li>{_esc(item)}</li>' for item in framework)}</ul>
   <h3>2. 典型题型</h3>
@@ -351,9 +504,9 @@ def profile_node_choices(choice: str, subject: str):
     subject = subject or (task.subjects[0] if task.subjects else "")
     choices = []
     for node in list_all_nodes(task, subject):
-        label = f"{' > '.join(node.get('path') or [])} ({node['id']})"
-        choices.append(label)
-    value = choices[0] if choices else None
+        label = " > ".join(node.get("path") or []) or node.get("title") or "未命名知识点"
+        choices.append((label, node["id"]))
+    value = choices[0][1] if choices else None
     return gr.update(choices=choices, value=value), render_node_detail_ui(choice, subject, value)
 
 
@@ -367,15 +520,18 @@ def render_mistakes_ui(choice: str, subject: str, keyword: str) -> str:
     return render_mistakes(task.id, subject or "", keyword or "")
 
 
-def manual_add_mistake_ui(choice: str, subject: str, question_text: str, reason: str) -> str:
+def manual_add_mistake_ui(choice: str, subject: str, image_path: str | None, question_text: str, reason: str) -> str:
     task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    original_question = question_text or ""
+    if image_path:
+        original_question = f"{original_question}\n\n[题目截图] {image_path}".strip()
     event = {
         "subject": subject or (task.subjects[0] if task.subjects else "通用"),
         "knowledge_node_id": "manual",
         "knowledge_path": [subject or "通用", "手动添加"],
         "weakness_signal": reason or "手动加入错题本",
     }
-    add_to_mistake_book(task.id, None, event, original_question=question_text, mistake_reason=reason)
+    add_to_mistake_book(task.id, None, event, original_question=original_question, mistake_reason=reason)
     return render_mistakes(task.id, subject or "", "")
 
 
@@ -397,7 +553,7 @@ def process_notes_ui(choice: str, files, pasted_text: str) -> str:
     analyses = result.get("analysis", [])
     lines = [
         "### 笔记解析结果",
-        f"- 任务: {task.task_name} / `{task.id}`",
+        f"- 任务: {_display_task_name(task.task_name, task.id)}",
         f"- 成功文件: {len(ok)}",
         f"- 失败文件: {len(failed)}",
         f"- 分析批次: {len(analyses)}",
@@ -462,6 +618,131 @@ def _current_level_rows(task, subject: str, current_node_id: str) -> list[list[s
     return rows or [["无可用知识点", "", "", "", ""]]
 
 
+def _display_rows(rows: list[list[str]] | None) -> list[list[str]]:
+    return [[str(row[0]), str(row[1]), str(row[2])] for row in rows or []]
+
+
+def _echarts_graph_payload(task, subject: str, nodes: list[dict]) -> dict:
+    states = {node["id"]: _state_for(task.id, node["id"]) or {} for node in nodes}
+    children_by_parent: dict[str, list[dict]] = {}
+    by_id = {node["id"]: node for node in nodes}
+    for node in nodes:
+        parent_id = node.get("parent_id") or ROOT_NODE_ID
+        children_by_parent.setdefault(parent_id, []).append(node)
+
+    def make_tree(node: dict) -> dict:
+        state = states.get(node["id"], {})
+        return {
+            "name": node.get("title") or node.get("name") or node["id"],
+            "value": int(state.get("seen_count") or 0),
+            "children": [make_tree(child) for child in children_by_parent.get(node["id"], [])],
+            "itemStyle": {"color": _status_color(state.get("status") or "unvisited")},
+        }
+
+    roots = [make_tree(node) for node in children_by_parent.get(ROOT_NODE_ID, [])]
+    tree_root = {"name": subject, "children": roots}
+    graph_nodes = []
+    graph_links = []
+    for node in nodes:
+        state = states.get(node["id"], {})
+        graph_nodes.append(
+            {
+                "id": node["id"],
+                "name": node.get("title") or node.get("name") or node["id"],
+                "symbolSize": 28 + min(28, int(state.get("seen_count") or 0) * 4),
+                "value": int(state.get("seen_count") or 0),
+                "itemStyle": {"color": _status_color(state.get("status") or "unvisited")},
+                "category": _status_label(state.get("status") or "unvisited"),
+            }
+        )
+        parent_id = node.get("parent_id") or ""
+        if parent_id and parent_id in by_id:
+            graph_links.append({"source": parent_id, "target": node["id"]})
+    return {"tree": tree_root, "nodes": graph_nodes, "links": graph_links}
+
+
+def _tree_option(graph: dict) -> dict:
+    return {
+        "tooltip": {"trigger": "item", "triggerOn": "mousemove"},
+        "toolbox": {"feature": {"saveAsImage": {}}},
+        "series": [
+            {
+                "type": "tree",
+                "data": [graph["tree"]],
+                "top": "5%",
+                "left": "8%",
+                "bottom": "5%",
+                "right": "18%",
+                "symbolSize": 10,
+                "label": {"position": "left", "verticalAlign": "middle", "align": "right", "fontSize": 12},
+                "leaves": {"label": {"position": "right", "verticalAlign": "middle", "align": "left"}},
+                "expandAndCollapse": True,
+                "initialTreeDepth": 2,
+                "animationDuration": 300,
+                "animationDurationUpdate": 500,
+            }
+        ],
+    }
+
+
+def _mindmap_option(graph: dict) -> dict:
+    return {
+        "tooltip": {"trigger": "item", "triggerOn": "mousemove"},
+        "toolbox": {"feature": {"saveAsImage": {}}},
+        "series": [
+            {
+                "type": "tree",
+                "data": [graph["tree"]],
+                "layout": "orthogonal",
+                "orient": "LR",
+                "top": "5%",
+                "left": "5%",
+                "bottom": "5%",
+                "right": "20%",
+                "symbol": "circle",
+                "symbolSize": 12,
+                "label": {"position": "left", "verticalAlign": "middle", "align": "right"},
+                "leaves": {"label": {"position": "right", "verticalAlign": "middle", "align": "left"}},
+                "expandAndCollapse": True,
+                "initialTreeDepth": 2,
+            }
+        ],
+    }
+
+
+def _network_option(graph: dict) -> dict:
+    return {
+        "tooltip": {},
+        "legend": [{"data": ["未接触", "已接触", "需要复习", "已掌握"]}],
+        "toolbox": {"feature": {"saveAsImage": {}}},
+        "series": [
+            {
+                "type": "graph",
+                "layout": "force",
+                "roam": True,
+                "draggable": True,
+                "data": graph["nodes"],
+                "links": graph["links"],
+                "categories": [{"name": item} for item in ["未接触", "已接触", "需要复习", "已掌握"]],
+                "label": {"show": True, "position": "right"},
+                "force": {"repulsion": 180, "edgeLength": [60, 160]},
+                "lineStyle": {"color": "source", "curveness": 0.18},
+            }
+        ],
+    }
+
+
+def _status_color(status: str) -> str:
+    return {
+        "unvisited": "#8a94a6",
+        "seen": "#3b82f6",
+        "learning": "#f59e0b",
+        "weak": "#ef4444",
+        "mastered": "#10b981",
+        "proficient": "#059669",
+    }.get(status or "unvisited", "#8a94a6")
+
+
 def _node_id_from_table_event(current_rows: list[list[str]] | None, evt) -> str:
     rows = list(current_rows or [])
     index = getattr(evt, "index", None)
@@ -503,16 +784,12 @@ def _path_for_raw_node(task, subject: str, node_id: str) -> list[str]:
 #     )
 
 def _breadcrumb_html(task, subject: str, current_node_id: str) -> str:
-    path = [subject] if current_node_id in {"", ROOT_NODE_ID, None} else _path_for_raw_node(task, subject, current_node_id)
-    path_html = " <span class='crumb-sep'>›</span> ".join(
-        f"<b>{_esc(item)}</b>" for item in path
-    )
-    return (
-        "<div class='knowledge-breadcrumb'>"
-        "<span>当前路径：</span>"
-        f"{path_html}"
-        "</div>"
-    )
+    if current_node_id in {"", ROOT_NODE_ID, None}:
+        title = subject
+    else:
+        node = get_node(task, subject, current_node_id) or {}
+        title = node.get("title") or subject
+    return f"### 当前层级：{_esc(title)}"
 
 
 def _level_overview_html(task, subject: str, current_node_id: str) -> str:
@@ -531,7 +808,6 @@ def _level_overview_html(task, subject: str, current_node_id: str) -> str:
     return f"""
 <div class="node-detail-panel">
   <h2>{_esc(title)}</h2>
-  <p class="muted">路径：{_esc(' > '.join(path))}</p>
   <h3>章节概览</h3>
   <ul>{''.join(f'<li>{_esc(item)}</li>' for item in framework)}</ul>
   <p class="muted">左侧选择有子目录的节点会继续下钻；选择叶子知识点会在这里显示详情。</p>
@@ -570,8 +846,12 @@ def _mistake_cards(rows: list[dict]) -> str:
     return "<ul>" + "".join(items) + "</ul>"
 
 def _parse_node_id(node_choice: str | None) -> str:
+    if isinstance(node_choice, (list, tuple)) and len(node_choice) >= 2:
+        return str(node_choice[1])
     if node_choice and "(" in node_choice and node_choice.endswith(")"):
         return node_choice.rsplit("(", 1)[-1][:-1]
+    if node_choice:
+        return str(node_choice)
     return ""
 
 
@@ -683,6 +963,3 @@ def _esc(value) -> str:
     import html
 
     return html.escape(str(value or ""))
-
-
-

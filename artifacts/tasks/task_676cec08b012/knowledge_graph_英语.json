@@ -2,7 +2,7 @@
   "task_id": "task_676cec08b012",
   "task_name": "2027考研机械",
   "subject": "英语",
-  "updated_at": "2026-06-17T09:59:23",
+  "updated_at": "2026-06-17T16:34:59",
   "nodes": [
     {
       "node_id": "ke_01",
@@ -11,13 +11,13 @@
         "英语",
         "词汇"
       ],
-      "parent_id": "kaoyan_english",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
-      "mastery_status": "未接触",
-      "question_count": 0,
-      "wrong_question_count": 0,
-      "last_touched_at": "",
+      "mastery_status": "需要复习",
+      "question_count": 1,
+      "wrong_question_count": 1,
+      "last_touched_at": "2026-06-17T16:34:59",
       "summary": "",
       "source": "syllabus"
     },
@@ -28,7 +28,7 @@
         "英语",
         "长难句"
       ],
-      "parent_id": "kaoyan_english",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -45,7 +45,7 @@
         "英语",
         "阅读理解"
       ],
-      "parent_id": "kaoyan_english",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -62,13 +62,13 @@
         "英语",
         "翻译"
       ],
-      "parent_id": "kaoyan_english",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
-      "mastery_status": "未接触",
-      "question_count": 0,
-      "wrong_question_count": 0,
-      "last_touched_at": "",
+      "mastery_status": "需要复习",
+      "question_count": 3,
+      "wrong_question_count": 3,
+      "last_touched_at": "2026-06-17T16:08:25",
       "summary": "",
       "source": "syllabus"
     },
@@ -79,7 +79,7 @@
         "英语",
         "小作文"
       ],
-      "parent_id": "kaoyan_english",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -96,7 +96,7 @@
         "英语",
         "大作文"
       ],
-      "parent_id": "kaoyan_english",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",

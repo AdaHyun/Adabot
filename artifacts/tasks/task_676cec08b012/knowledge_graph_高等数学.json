@@ -2,7 +2,7 @@
   "task_id": "task_676cec08b012",
   "task_name": "2027考研机械",
   "subject": "高等数学",
-  "updated_at": "2026-06-17T09:59:23",
+  "updated_at": "2026-06-17T16:34:59",
   "nodes": [
     {
       "node_id": "am_01",
@@ -11,7 +11,7 @@
         "高等数学",
         "函数极限连续"
       ],
-      "parent_id": "kaoyan_advanced_math",
+      "parent_id": "",
       "children": [
         "am_01_01",
         "am_01_02",
@@ -90,7 +90,7 @@
         "高等数学",
         "一元函数微分学"
       ],
-      "parent_id": "kaoyan_advanced_math",
+      "parent_id": "",
       "children": [
         "am_02_01",
         "am_02_02",
@@ -169,7 +169,7 @@
         "高等数学",
         "一元函数积分学"
       ],
-      "parent_id": "kaoyan_advanced_math",
+      "parent_id": "",
       "children": [
         "am_03_01",
         "am_03_02",
@@ -248,7 +248,7 @@
         "高等数学",
         "多元函数微分学"
       ],
-      "parent_id": "kaoyan_advanced_math",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -265,7 +265,7 @@
         "高等数学",
         "重积分"
       ],
-      "parent_id": "kaoyan_advanced_math",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -282,7 +282,7 @@
         "高等数学",
         "无穷级数"
       ],
-      "parent_id": "kaoyan_advanced_math",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -299,7 +299,7 @@
         "高等数学",
         "微分方程"
       ],
-      "parent_id": "kaoyan_advanced_math",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "已接触",

@@ -2,7 +2,7 @@
   "task_id": "task_676cec08b012",
   "task_name": "2027考研机械",
   "subject": "概率论",
-  "updated_at": "2026-06-17T09:59:23",
+  "updated_at": "2026-06-17T16:34:59",
   "nodes": [
     {
       "node_id": "pr_01",
@@ -11,7 +11,7 @@
         "概率论",
         "随机事件与概率"
       ],
-      "parent_id": "kaoyan_probability",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -28,7 +28,7 @@
         "概率论",
         "随机变量及分布"
       ],
-      "parent_id": "kaoyan_probability",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -45,7 +45,7 @@
         "概率论",
         "多维随机变量"
       ],
-      "parent_id": "kaoyan_probability",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -62,7 +62,7 @@
         "概率论",
         "数字特征"
       ],
-      "parent_id": "kaoyan_probability",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -79,7 +79,7 @@
         "概率论",
         "大数定律与中心极限定理"
       ],
-      "parent_id": "kaoyan_probability",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -96,7 +96,7 @@
         "概率论",
         "参数估计"
       ],
-      "parent_id": "kaoyan_probability",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",
@@ -113,7 +113,7 @@
         "概率论",
         "假设检验"
       ],
-      "parent_id": "kaoyan_probability",
+      "parent_id": "",
       "children": [],
       "basic_framework": [],
       "mastery_status": "未接触",

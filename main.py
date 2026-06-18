@@ -46,7 +46,9 @@ from learning_tasks.task_ui import (
     generate_quiz_ui,
     grade_quiz_ui,
     manual_add_mistake_ui,
+    mark_profile_loaded,
     initialize_knowledge_drilldown,
+    on_enter_child_node,
     on_back_to_parent,
     on_knowledge_node_click,
     process_notes_ui,
@@ -54,11 +56,15 @@ from learning_tasks.task_ui import (
     refresh_task_dropdown,
     render_node_detail_ui,
     render_mistakes_ui,
+    render_profile_chart,
+    render_profile_chart_if_loaded,
     render_profile_ui,
     render_review_plan_ui,
     render_task_list,
+    reset_profile_loaded,
     search_history_ui,
     subject_choices_for_task,
+    subject_choices_for_task_pair,
     switch_task,
     task_choices,
 )
@@ -247,8 +253,10 @@ def run_agent(
     uploaded_image_count = len(uploaded_images)
     init_db()
     task = None
-    if task_choice and "(" in task_choice and task_choice.endswith(")"):
-        task_id = task_choice.rsplit("(", 1)[-1][:-1]
+    if task_choice:
+        task_id = str(task_choice)
+        if "(" in task_id and task_id.endswith(")"):
+            task_id = task_id.rsplit("(", 1)[-1][:-1]
         task = get_task(task_id)
         if task:
             set_active_task(task.id)
@@ -488,6 +496,8 @@ def build_ui_v2() -> gr.Blocks:
     active_task = get_or_create_default_task()
     initial_chat_history = load_recent_chat_messages(active_task.id)
     choices = task_choices()
+    initial_subjects = active_task.subjects or ["通用"]
+    initial_subject_choices = [(item, item) for item in initial_subjects]
     css_path = os.path.join(os.path.dirname(__file__), "assets", "custom.css")
     css_text = ""
     if os.path.exists(css_path):
@@ -503,6 +513,7 @@ def build_ui_v2() -> gr.Blocks:
         nav_stack_state = gr.State([])
         selected_node_id_state = gr.State("")
         profile_node_rows_state = gr.State([])
+        profile_loaded_state = gr.State(False)
         current_subject_state = gr.State((active_task.subjects or ["通用"])[0])
 
         gr.Markdown("# Adabot")
@@ -511,7 +522,7 @@ def build_ui_v2() -> gr.Blocks:
             task_dropdown = gr.Dropdown(
                 label="当前学习任务",
                 choices=choices,
-                value=choices[0] if choices else None,
+                value=active_task.id if choices else None,
                 scale=4,
             )
             refresh_tasks_btn = gr.Button("刷新", size="sm", scale=1)
@@ -607,22 +618,24 @@ def build_ui_v2() -> gr.Blocks:
 
             with gr.Tab("学习画像"):
                 with gr.Row():
-                    initial_subjects = active_task.subjects or ["通用"]
-                    profile_subject = gr.Dropdown(label="科目", choices=initial_subjects, value=initial_subjects[0])
-                    profile_view = gr.Dropdown(
-                        label="视图",
-                        choices=["逐级目录", "思维导图", "树状视图"],
-                        value="逐级目录",
+                    profile_subject = gr.Dropdown(label="科目", choices=initial_subject_choices, value=initial_subjects[0])
+                    profile_view = gr.Radio(
+                        choices=["树状图", "思维导图", "知识网络图谱"],
+                        label="视图切换",
+                        value="树状图",
                     )
                     profile_refresh_btn = gr.Button("刷新画像")
+                profile_chart = gr.HTML("<div class='node-detail-empty'>请点击“刷新画像”加载图谱。</div>")
                 with gr.Row():
                     with gr.Column(scale=2):
-                        profile_breadcrumb = gr.HTML()
-                        back_parent_btn = gr.Button("返回上一级", elem_classes=["back-button"], interactive=False)
+                        with gr.Row():
+                            back_parent_btn = gr.Button("<", elem_classes=["back-button"], interactive=False, min_width=36, scale=0)
+                            enter_child_btn = gr.Button("进入", elem_classes=["back-button"], interactive=False, min_width=54, scale=0)
+                            profile_breadcrumb = gr.Markdown("### 当前层级：-")
                         profile_node_selector = gr.Dataframe(
                             label="当前层级知识点",
-                            headers=["知识点", "状态", "提问数", "类型", "ID"],
-                            datatype=["str", "str", "str", "str", "str"],
+                            headers=["知识点", "状态", "提问数"],
+                            datatype=["str", "str", "str"],
                             value=[],
                             interactive=False,
                             wrap=True,
@@ -652,9 +665,11 @@ def build_ui_v2() -> gr.Blocks:
                     mistake_refresh_btn = gr.Button("刷新错题本")
                 mistake_output = gr.Markdown()
                 gr.Markdown("### 手动添加错题")
-                manual_question = gr.Textbox(label="原题/问题", lines=3)
-                manual_reason = gr.Textbox(label="错误原因", lines=2)
-                manual_add_btn = gr.Button("手动加入错题本")
+                with gr.Group():
+                    manual_image = gr.Image(label="上传题目截图（可选）", type="filepath")
+                    manual_question = gr.Textbox(label="原题/问题补充", lines=3)
+                    manual_reason = gr.Textbox(label="错误原因分析", lines=2)
+                    manual_add_btn = gr.Button("手动加入错题本")
 
             with gr.Tab("复习计划"):
                 review_refresh_btn = gr.Button("生成复习建议")
@@ -667,7 +682,7 @@ def build_ui_v2() -> gr.Blocks:
 
             with gr.Tab("小测验"):
                 with gr.Row():
-                    quiz_subject = gr.Textbox(label="科目", value="线性代数")
+                    quiz_subject = gr.Dropdown(label="科目", choices=initial_subject_choices, value=initial_subjects[0])
                     quiz_knowledge = gr.Textbox(label="知识点路径 / 名称", value="线性代数 > 矩阵 > 矩阵乘法")
                 with gr.Row():
                     quiz_count = gr.Number(label="题目数量", value=3, precision=0)
@@ -684,13 +699,17 @@ def build_ui_v2() -> gr.Blocks:
         task_switch_event = task_dropdown.change(
             fn=switch_task, inputs=[task_dropdown], 
             outputs=[active_task_md, chat_history_state]).then(
-            fn=subject_choices_for_task,
+            fn=subject_choices_for_task_pair,
             inputs=[task_dropdown],
-            outputs=[profile_subject],
+            outputs=[profile_subject, quiz_subject],
         ).then(
             fn=lambda history: history,
             inputs=[chat_history_state],
             outputs=[answer],
+        ).then(
+            fn=reset_profile_loaded,
+            inputs=[],
+            outputs=[profile_loaded_state, profile_chart],
         )
         # if not DEBUG_DISABLE_PROFILE_EVENTS:
         #     task_switch_event.then(
@@ -724,13 +743,17 @@ def build_ui_v2() -> gr.Blocks:
             ],
             outputs=[task_dropdown, create_task_status, task_list_md, chat_history_state],
         ).then(fn=refresh_task_dropdown, inputs=[], outputs=[task_dropdown, active_task_md]).then(
-            fn=subject_choices_for_task,
+            fn=subject_choices_for_task_pair,
             inputs=[task_dropdown],
-            outputs=[profile_subject],
+            outputs=[profile_subject, quiz_subject],
         ).then(
             fn=lambda history: history,
             inputs=[chat_history_state],
             outputs=[answer],
+        ).then(
+            fn=reset_profile_loaded,
+            inputs=[],
+            outputs=[profile_loaded_state, profile_chart],
         )
         # if not DEBUG_DISABLE_PROFILE_EVENTS:
         #     create_task_event.then(
@@ -748,7 +771,7 @@ def build_ui_v2() -> gr.Blocks:
         #         ],
         #     )
         if not DEBUG_DISABLE_PROFILE_EVENTS:
-            profile_refresh_btn.click(
+            profile_refresh_event = profile_refresh_btn.click(
                 fn=initialize_knowledge_drilldown,
                 inputs=[task_dropdown, profile_subject],
                 outputs=[
@@ -761,41 +784,36 @@ def build_ui_v2() -> gr.Blocks:
                     profile_node_selector,
                     profile_node_detail,
                     back_parent_btn,
+                    enter_child_btn,
                 ],
             )
-            profile_subject.change(
-                fn=initialize_knowledge_drilldown,
-                inputs=[task_dropdown, profile_subject],
-                outputs=[
-                    current_node_id_state,
-                    nav_stack_state,
-                    selected_node_id_state,
-                    current_subject_state,
-                    profile_node_rows_state,
-                    profile_breadcrumb,
-                    profile_node_selector,
-                    profile_node_detail,
-                    back_parent_btn,
-                ],
+            profile_refresh_event.then(
+                fn=render_profile_chart,
+                inputs=[task_dropdown, profile_subject, profile_view],
+                outputs=[profile_chart],
+            ).then(
+                fn=mark_profile_loaded,
+                inputs=[],
+                outputs=[profile_loaded_state],
             )
-            # profile_node_selector.change(
+            profile_view.change(
+                fn=render_profile_chart_if_loaded,
+                inputs=[profile_loaded_state, task_dropdown, profile_subject, profile_view],
+                outputs=[profile_chart],
+            )
             profile_node_selector.select(
                 fn=on_knowledge_node_click,
                 inputs=[profile_node_rows_state, current_node_id_state, nav_stack_state, task_dropdown, profile_subject],
                 outputs=[
-                    current_node_id_state,
-                    nav_stack_state,
                     selected_node_id_state,
-                    profile_node_rows_state,
-                    profile_node_selector,
                     profile_breadcrumb,
                     profile_node_detail,
-                    back_parent_btn,
+                    enter_child_btn,
                 ],
             )
-            back_parent_btn.click(
-                fn=on_back_to_parent,
-                inputs=[current_node_id_state, nav_stack_state, task_dropdown, profile_subject, selected_node_id_state],
+            enter_child_btn.click(
+                fn=on_enter_child_node,
+                inputs=[selected_node_id_state, current_node_id_state, nav_stack_state, task_dropdown, profile_subject],
                 outputs=[
                     current_node_id_state,
                     nav_stack_state,
@@ -805,30 +823,32 @@ def build_ui_v2() -> gr.Blocks:
                     profile_breadcrumb,
                     profile_node_detail,
                     back_parent_btn,
+                    enter_child_btn,
+                ],
+            )
+            back_parent_btn.click(
+                fn=on_back_to_parent,
+                inputs=[current_node_id_state, nav_stack_state, task_dropdown, profile_subject],
+                outputs=[
+                    current_node_id_state,
+                    nav_stack_state,
+                    selected_node_id_state,
+                    profile_node_rows_state,
+                    profile_node_selector,
+                    profile_breadcrumb,
+                    profile_node_detail,
+                    back_parent_btn,
+                    enter_child_btn,
                 ],
             )
             notes_process_btn.click(
                 fn=process_notes_ui,
                 inputs=[task_dropdown, notes_files, notes_text],
                 outputs=[notes_result],
-            ).then(
-                fn=initialize_knowledge_drilldown,
-                inputs=[task_dropdown, profile_subject],
-                outputs=[
-                    current_node_id_state,
-                    nav_stack_state,
-                    selected_node_id_state,
-                    current_subject_state,
-                    profile_node_rows_state,
-                    profile_breadcrumb,
-                    profile_node_selector,
-                    profile_node_detail,
-                    back_parent_btn,
-                ],
             )
 
         mistake_refresh_btn.click(fn=render_mistakes_ui, inputs=[task_dropdown, mistake_subject, mistake_keyword], outputs=[mistake_output])
-        manual_add_btn.click(fn=manual_add_mistake_ui, inputs=[task_dropdown, mistake_subject, manual_question, manual_reason], outputs=[mistake_output])
+        manual_add_btn.click(fn=manual_add_mistake_ui, inputs=[task_dropdown, mistake_subject, manual_image, manual_question, manual_reason], outputs=[mistake_output])
         review_refresh_btn.click(fn=render_review_plan_ui, inputs=[task_dropdown], outputs=[review_output])
         history_search_btn.click(fn=search_history_ui, inputs=[task_dropdown, history_keyword], outputs=[history_output])
         quiz_btn.click(fn=generate_quiz_ui, inputs=[task_dropdown, quiz_subject, quiz_knowledge, quiz_count, quiz_difficulty], outputs=[quiz_output])
@@ -867,22 +887,6 @@ def build_ui_v2() -> gr.Blocks:
             outputs=[answer, debug_output],
             cancels=[submit_event, enter_event],
         )
-        if not DEBUG_DISABLE_PROFILE_EVENTS:
-            demo.load(
-                fn=initialize_knowledge_drilldown,
-                inputs=[task_dropdown, profile_subject],
-                outputs=[
-                    current_node_id_state,
-                    nav_stack_state,
-                    selected_node_id_state,
-                    current_subject_state,
-                    profile_node_rows_state,
-                    profile_breadcrumb,
-                    profile_node_selector,
-                    profile_node_detail,
-                    back_parent_btn,
-                ],
-            )
     return demo
 
 
