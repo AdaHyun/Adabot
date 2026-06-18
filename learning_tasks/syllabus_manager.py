@@ -67,6 +67,7 @@ def _slug_subject(subject: str) -> str:
         "线性代数": "linear_algebra",
         "概率论": "probability",
         "英语": "english",
+        "考研英语": "english",
         "机械原理": "mechanical_principles",
         "数学": "math",
         "物理": "physics",

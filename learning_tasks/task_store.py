@@ -92,8 +92,10 @@ def init_db() -> None:
                 mistake_count INTEGER DEFAULT 0,
                 review_count INTEGER DEFAULT 0,
                 mastery_score REAL DEFAULT 0,
+                first_accessed_at TEXT,
                 last_seen_at TEXT,
                 last_reviewed_at TEXT,
+                next_review_at TEXT,
                 updated_at TEXT,
                 UNIQUE(task_id, knowledge_node_id),
                 FOREIGN KEY(task_id) REFERENCES learning_tasks(id)
@@ -142,6 +144,21 @@ def init_db() -> None:
             );
             """
         )
+        _ensure_columns(
+            conn,
+            "knowledge_state",
+            {
+                "first_accessed_at": "TEXT",
+                "next_review_at": "TEXT",
+            },
+        )
+
+
+def _ensure_columns(conn: sqlite3.Connection, table: str, columns: dict[str, str]) -> None:
+    existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    for name, definition in columns.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
 
 
 def create_task(

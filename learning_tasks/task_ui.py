@@ -1,6 +1,8 @@
 ﻿from __future__ import annotations
 
+from datetime import datetime, timedelta
 from pathlib import Path
+from xml.sax.saxutils import escape as xml_escape
 import uuid
 import json
 import time
@@ -168,7 +170,21 @@ def render_profile_ui(choice: str, subject: str, view_label: str) -> str:
 ROOT_NODE_ID = "__root__"
 
 
-NODE_TABLE_HEADERS = ["知识点", "状态", "提问数"]
+NODE_TABLE_HEADERS = ["知识点", "状态", "累计提问"]
+
+
+PROFILE_CATEGORY_LABELS = ["未接触", "已接触", "需要复习", "已掌握"]
+PROFILE_CATEGORY_COLORS = ["#8a94a6", "#3b82f6", "#f59e0b", "#10b981"]
+PROFILE_CATEGORY_COLOR_BY_STATUS = {
+    "unvisited": "#8a94a6",
+    "seen": "#3b82f6",
+    "learning": "#f59e0b",
+    "weak": "#f59e0b",
+    "mastered": "#10b981",
+    "proficient": "#10b981",
+}
+MEMORY_DECAY_DAYS = 14
+QUESTION_TIME_FILTERS = ["全部时间", "今天需复习", "最近3天出错", "超过1周未看"]
 
 
 def _table_update(rows: list[list[str]]):
@@ -323,7 +339,7 @@ def initialize_knowledge_drilldown(choice: str, subject: str):
         "",
         subject,
         rows,
-        _breadcrumb_html(task, subject, ROOT_NODE_ID),
+        _level_title_md(task, subject, ROOT_NODE_ID),
         _table_update(rows),
         _level_overview_html(task, subject, ROOT_NODE_ID),
         gr.update(interactive=False),
@@ -352,7 +368,7 @@ def on_knowledge_node_click(
         debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s empty")
         return (
             "",
-            _breadcrumb_html(task, subject, current_node_id),
+            _level_title_md(task, subject, current_node_id),
             _level_overview_html(task, subject, current_node_id),
             gr.update(interactive=False),
         )
@@ -363,7 +379,7 @@ def on_knowledge_node_click(
         debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s missing node={node_id}")
         return (
             "",
-            _breadcrumb_html(task, subject, current_node_id),
+            _level_title_md(task, subject, current_node_id),
             "<div class='node-detail-empty'>未找到该知识点。</div>",
             gr.update(interactive=False),
         )
@@ -374,7 +390,7 @@ def on_knowledge_node_click(
         debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s selected parent node={node_id}")
         return (
             node_id,
-            f"### 当前选择：{_esc(node.get('title') or '')}",
+            _level_title_md(task, subject, current_node_id),
             _level_overview_html(task, subject, node_id),
             gr.update(interactive=True),
         )
@@ -382,8 +398,8 @@ def on_knowledge_node_click(
     debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s detail node={node_id}")
     return (
         node_id,
-        f"### 当前选择：{_esc(node.get('title') or '')}",
-        render_knowledge_node_detail(task, subject, node_id),
+        _level_title_md(task, subject, current_node_id),
+        render_question_set_view(task, subject, node_id),
         gr.update(interactive=False),
     )
 
@@ -404,7 +420,7 @@ def on_enter_child_node(selected_node_id: str | None, current_node_id: str, nav_
             "",
             rows,
             _table_update(rows),
-            _breadcrumb_html(task, subject, current_node_id or ROOT_NODE_ID),
+            _level_title_md(task, subject, current_node_id or ROOT_NODE_ID),
             _level_overview_html(task, subject, current_node_id or ROOT_NODE_ID),
             gr.update(interactive=bool(nav_stack)),
             gr.update(interactive=False),
@@ -420,7 +436,7 @@ def on_enter_child_node(selected_node_id: str | None, current_node_id: str, nav_
         "",
         rows,
         _table_update(rows),
-        _breadcrumb_html(task, subject, node_id),
+        _level_title_md(task, subject, node_id),
         _level_overview_html(task, subject, node_id),
         gr.update(interactive=True),
         gr.update(interactive=False),
@@ -447,9 +463,71 @@ def on_back_to_parent(current_node_id: str, nav_stack: list[str] | None, choice:
         "",
         rows,
         _table_update(rows),
-        _breadcrumb_html(task, subject, current),
+        _level_title_md(task, subject, current),
         _level_overview_html(task, subject, current),
         gr.update(interactive=bool(stack)),
+        gr.update(interactive=False),
+    )
+
+
+def on_knowledge_node_double_click(
+    row_index_text: str | None,
+    current_rows: list[list[str]] | None,
+    current_node_id: str,
+    nav_stack: list[str] | None,
+    choice: str,
+    subject: str,
+):
+    import gradio as gr
+
+    task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    subject = subject or (task.subjects[0] if task.subjects else "通用")
+    current_node_id = current_node_id or ROOT_NODE_ID
+    rows = list(current_rows or [])
+    try:
+        row = rows[int(str(row_index_text or "").strip())]
+        node_id = str(row[4] or "")
+    except Exception:
+        level_rows = _current_level_rows(task, subject, current_node_id)
+        return (
+            current_node_id,
+            list(nav_stack or []),
+            "",
+            level_rows,
+            _table_update(level_rows),
+            _level_title_md(task, subject, current_node_id),
+            _level_overview_html(task, subject, current_node_id),
+            gr.update(interactive=bool(nav_stack)),
+            gr.update(interactive=False),
+        )
+
+    children = list_children(task, subject, node_id)
+    if not node_id or not children:
+        level_rows = _current_level_rows(task, subject, current_node_id)
+        return (
+            current_node_id,
+            list(nav_stack or []),
+            node_id,
+            level_rows,
+            _table_update(level_rows),
+            _level_title_md(task, subject, current_node_id),
+            render_question_set_view(task, subject, node_id) if node_id else _level_overview_html(task, subject, current_node_id),
+            gr.update(interactive=bool(nav_stack)),
+            gr.update(interactive=False),
+        )
+
+    stack = list(nav_stack or [])
+    stack.append(current_node_id)
+    level_rows = _current_level_rows(task, subject, node_id)
+    return (
+        node_id,
+        stack,
+        "",
+        level_rows,
+        _table_update(level_rows),
+        _level_title_md(task, subject, node_id),
+        _level_overview_html(task, subject, node_id),
+        gr.update(interactive=True),
         gr.update(interactive=False),
     )
 
@@ -463,12 +541,15 @@ def render_knowledge_node_detail(task: object, subject: str, node_id: str | None
     node = get_node(task, subject, node_id)
     if not node:
         return "<div class='node-detail-empty'>未找到该知识点。</div>"
-    state = _state_for(task.id, node_id)
+    metrics = get_node_metrics(task, subject, node_id)
+    state = metrics.get("state") or {}
     questions = _questions_for_node(task.id, node_id, node.get("path") or [])
     mistakes = _mistakes_for_node(task.id, node_id)
     framework = _ensure_basic_framework(task, subject, node)
     typical = _typical_questions_for(node.get("title", ""))
     status = _status_label((state or {}).get("status") or "unvisited")
+    if (state or {}).get("stale_review"):
+        status = f"{status}（需定期巩固）"
     path = node.get("path") or [subject, node.get("title", "")]
     debug_log("render_knowledge_node_detail", f"END elapsed={time.time() - t0:.2f}s node={node_id}")
     return f"""
@@ -481,9 +562,9 @@ def render_knowledge_node_detail(task: object, subject: str, node_id: str | None
   <h3>3. 当前掌握状态</h3>
   <div class="stat-grid">
     <span>状态<br><b>{_esc(status)}</b></span>
-    <span>seen<br><b>{(state or {}).get('seen_count', 0)}</b></span>
-    <span>weak<br><b>{(state or {}).get('weak_count', 0)}</b></span>
-    <span>mistake<br><b>{(state or {}).get('mistake_count', 0)}</b></span>
+    <span>当前提问<br><b>{metrics.get('direct_question_count', 0)}</b></span>
+    <span>累计提问<br><b>{metrics.get('question_count', 0)}</b></span>
+    <span>累计错题<br><b>{metrics.get('mistake_count', 0)}</b></span>
     <span>mastery<br><b>{float((state or {}).get('mastery_score') or 0):.2f}</b></span>
   </div>
   <h3>4. 你问过的问题</h3>
@@ -515,9 +596,37 @@ def render_node_detail_ui(choice: str, subject: str, node_choice: str | None) ->
     node_id = _parse_node_id(node_choice)
     return render_knowledge_node_detail(task, subject, node_id)
 
+
+def render_selected_node_question_set(choice: str, subject: str, node_id: str | None, time_filter: str | None) -> str:
+    task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    if not node_id:
+        return "<div class='node-detail-empty'>请选择一个知识点。</div>"
+    subject = subject or (task.subjects[0] if task.subjects else "通用")
+    if list_children(task, subject, node_id):
+        return _level_overview_html(task, subject, node_id)
+    return render_question_set_view(task, subject, node_id, time_filter or "全部时间")
+
+
 def render_mistakes_ui(choice: str, subject: str, keyword: str) -> str:
     task = get_task(parse_task_id(choice)) or get_or_create_default_task()
     return render_mistakes(task.id, subject or "", keyword or "")
+
+
+def render_mistakes_ui_filtered(choice: str, subject: str, keyword: str, time_filter: str) -> str:
+    task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    rows = _filter_rows_by_time(_mistakes_for_task(task.id, subject or "", keyword or ""), time_filter or "全部时间", mistake_rows=True)
+    if not rows:
+        return "### 错题本\n\n暂无符合条件的错题。"
+    lines = ["### 错题本"]
+    for row in rows:
+        path = " > ".join(_loads(row.get("knowledge_path")))
+        lines.append(
+            f"- **{_esc(row.get('created_at') or '-')}** / {_esc(path or row.get('knowledge_node_id') or '-')}\n"
+            f"  - 原题：{_esc(_summary(row.get('original_question') or '', 120))}\n"
+            f"  - 原因：{_esc(row.get('mistake_reason') or '-')}\n"
+            f"  - 下次复习：{_esc(row.get('next_review_at') or '-')}"
+        )
+    return "\n".join(lines)
 
 
 def manual_add_mistake_ui(choice: str, subject: str, image_path: str | None, question_text: str, reason: str) -> str:
@@ -588,6 +697,89 @@ def ensure_profile_export_dir() -> None:
     Path(__file__).resolve().parents[1].joinpath("data", "profile_exports").mkdir(parents=True, exist_ok=True)
 
 
+def export_mindmap_markdown(choice: str, subject: str) -> str:
+    task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    subject = subject or (task.subjects[0] if task.subjects else "通用")
+    nodes = list_all_nodes(task, subject)
+    export_dir = Path(__file__).resolve().parents[1] / "data" / "profile_exports"
+    export_dir.mkdir(parents=True, exist_ok=True)
+    safe_subject = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in subject).strip("_") or "mindmap"
+    path = export_dir / f"{safe_subject}_{uuid.uuid4().hex[:8]}.md"
+
+    if not nodes:
+        path.write_text(f"# {subject}\n\n暂无知识图谱数据。\n", encoding="utf-8")
+        return str(path)
+
+    children_by_parent: dict[str, list[dict]] = {}
+    for node in nodes:
+        parent_id = node.get("parent_id") or ROOT_NODE_ID
+        children_by_parent.setdefault(parent_id, []).append(node)
+    for siblings in children_by_parent.values():
+        siblings.sort(key=lambda item: (int(item.get("sort_order") or 0), item.get("title") or item.get("name") or ""))
+
+    lines = [f"# {subject}", ""]
+
+    def write_node(node: dict, depth: int) -> None:
+        title = node.get("title") or node.get("name") or node.get("id") or "未命名知识点"
+        if depth <= 5:
+            lines.append(f"{'#' * (depth + 1)} {title}")
+        else:
+            lines.append(f"{'  ' * (depth - 5)}- {title}")
+        for child in children_by_parent.get(node.get("id", ""), []):
+            write_node(child, depth + 1)
+
+    for root in children_by_parent.get(ROOT_NODE_ID, []):
+        write_node(root, 1)
+
+    path.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    return str(path)
+
+
+def export_mindmap_opml(choice: str, subject: str) -> str:
+    task = get_task(parse_task_id(choice)) or get_or_create_default_task()
+    subject = subject or (task.subjects[0] if task.subjects else "通用")
+    nodes = list_all_nodes(task, subject)
+    export_dir = Path(__file__).resolve().parents[1] / "data" / "profile_exports"
+    export_dir.mkdir(parents=True, exist_ok=True)
+    safe_subject = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in subject).strip("_") or "mindmap"
+    path = export_dir / f"{safe_subject}_{uuid.uuid4().hex[:8]}.opml"
+
+    children_by_parent: dict[str, list[dict]] = {}
+    for node in nodes:
+        parent_id = node.get("parent_id") or ROOT_NODE_ID
+        children_by_parent.setdefault(parent_id, []).append(node)
+    for siblings in children_by_parent.values():
+        siblings.sort(key=lambda item: (int(item.get("sort_order") or 0), item.get("title") or item.get("name") or ""))
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<opml version="2.0">',
+        "  <head>",
+        f"    <title>{_xml_attr(subject)}</title>",
+        "  </head>",
+        "  <body>",
+        f'    <outline text="{_xml_attr(subject)}">',
+    ]
+
+    def write_node(node: dict, depth: int) -> None:
+        title = _xml_attr(str(node.get("title") or node.get("name") or node.get("id") or "未命名知识点"))
+        indent = "  " * depth
+        children = children_by_parent.get(node.get("id", ""), [])
+        if not children:
+            lines.append(f'{indent}<outline text="{title}" />')
+            return
+        lines.append(f'{indent}<outline text="{title}">')
+        for child in children:
+            write_node(child, depth + 1)
+        lines.append(f"{indent}</outline>")
+
+    for root in children_by_parent.get(ROOT_NODE_ID, []):
+        write_node(root, 4)
+    lines.extend(["    </outline>", "  </body>", "</opml>"])
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return str(path)
+
+
 def _clean_task_name(name: str | None) -> str:
     text = (name or "").strip()
     if not text or set(text) <= {"?"}:
@@ -610,11 +802,13 @@ def _current_level_rows(task, subject: str, current_node_id: str) -> list[list[s
     rows = []
     for node in nodes:
         child_count = len(list_children(task, subject, node.get("id", "")))
-        state = _state_for(task.id, node.get("id", ""))
+        metrics = get_node_metrics(task, subject, node.get("id", ""))
+        state = metrics.get("state") or {}
         status = _status_label((state or {}).get("status") or "unvisited")
-        q_count = _question_count_for_node(task.id, node.get("id", ""), _path_for_raw_node(task, subject, node.get("id", "")))
+        if (state or {}).get("stale_review"):
+            status = f"{status}（需定期巩固）"
         node_type = f"{child_count} 个子目录" if child_count else "叶子知识点"
-        rows.append([node.get("title") or node.get("name") or "", status, str(q_count), node_type, node.get("id", "")])
+        rows.append([node.get("title") or node.get("name") or "", status, str(metrics.get("question_count", 0)), node_type, node.get("id", "")])
     return rows or [["无可用知识点", "", "", "", ""]]
 
 
@@ -622,21 +816,95 @@ def _display_rows(rows: list[list[str]] | None) -> list[list[str]]:
     return [[str(row[0]), str(row[1]), str(row[2])] for row in rows or []]
 
 
+def get_node_metrics(task, subject: str, node_id: str) -> dict:
+    node = get_node(task, subject, node_id)
+    if not node:
+        return _empty_metrics()
+    all_nodes = list_all_nodes(task, subject)
+    children_by_parent: dict[str, list[dict]] = {}
+    for item in all_nodes:
+        children_by_parent.setdefault(item.get("parent_id") or ROOT_NODE_ID, []).append(item)
+    states = {item["id"]: _effective_state_for(task.id, item["id"]) or {} for item in all_nodes}
+    direct_questions = _questions_for_node(task.id, node_id, node.get("path") or [subject])
+    direct_mistakes = _mistakes_for_node(task.id, node_id)
+
+    def aggregate(current: dict) -> dict[str, int]:
+        current_id = current["id"]
+        state = states.get(current_id, {})
+        total = {
+            "seen_count": int(state.get("seen_count") or 0),
+            "weak_count": int(state.get("weak_count") or 0),
+            "mistake_count": int(state.get("mistake_count") or 0),
+            "review_count": int(state.get("review_count") or 0),
+            "question_count": _direct_question_count_for_node(task.id, current_id),
+        }
+        for child in children_by_parent.get(current_id, []):
+            child_total = aggregate(child)
+            for key in total:
+                total[key] += int(child_total.get(key) or 0)
+        return total
+
+    totals = aggregate(node)
+    state = states.get(node_id, {})
+    last_dt = _latest_datetime(
+        state.get("last_reviewed_at"),
+        state.get("last_seen_at"),
+        state.get("updated_at"),
+    )
+    result = {
+        **totals,
+        "state": state,
+        "direct_question_count": len(direct_questions),
+        "direct_mistake_count": len(direct_mistakes),
+        "last_activity_at": last_dt.isoformat(timespec="seconds") if last_dt else "",
+        "last_activity_days": _days_ago(last_dt),
+        "next_review_at": state.get("next_review_at") or "",
+        "is_leaf": len(children_by_parent.get(node_id, [])) == 0,
+    }
+    return result
+
+
+def _empty_metrics() -> dict:
+    return {
+        "seen_count": 0,
+        "weak_count": 0,
+        "mistake_count": 0,
+        "review_count": 0,
+        "question_count": 0,
+        "direct_question_count": 0,
+        "direct_mistake_count": 0,
+        "state": {},
+        "last_activity_at": "",
+        "last_activity_days": None,
+        "next_review_at": "",
+        "is_leaf": True,
+    }
+
+
 def _echarts_graph_payload(task, subject: str, nodes: list[dict]) -> dict:
-    states = {node["id"]: _state_for(task.id, node["id"]) or {} for node in nodes}
     children_by_parent: dict[str, list[dict]] = {}
     by_id = {node["id"]: node for node in nodes}
     for node in nodes:
         parent_id = node.get("parent_id") or ROOT_NODE_ID
         children_by_parent.setdefault(parent_id, []).append(node)
+    metrics_by_id = {node["id"]: get_node_metrics(task, subject, node["id"]) for node in nodes}
 
     def make_tree(node: dict) -> dict:
-        state = states.get(node["id"], {})
+        metrics = metrics_by_id.get(node["id"], _empty_metrics())
+        state = metrics.get("state") or {}
+        status = state.get("status") or "unvisited"
+        item_style = {"color": _status_color(status)}
+        if _should_glow(state, metrics):
+            item_style.update({"shadowBlur": 15, "shadowColor": "rgba(239, 68, 68, 0.8)"})
         return {
             "name": node.get("title") or node.get("name") or node["id"],
-            "value": int(state.get("seen_count") or 0),
+            "value": metrics["question_count"],
+            "seen_count": metrics["seen_count"],
+            "question_count": metrics["question_count"],
+            "mistake_count": metrics["mistake_count"],
+            "last_activity_days": _format_days_ago(metrics.get("last_activity_days")),
             "children": [make_tree(child) for child in children_by_parent.get(node["id"], [])],
-            "itemStyle": {"color": _status_color(state.get("status") or "unvisited")},
+            "itemStyle": item_style,
         }
 
     roots = [make_tree(node) for node in children_by_parent.get(ROOT_NODE_ID, [])]
@@ -644,38 +912,63 @@ def _echarts_graph_payload(task, subject: str, nodes: list[dict]) -> dict:
     graph_nodes = []
     graph_links = []
     for node in nodes:
-        state = states.get(node["id"], {})
+        metrics = metrics_by_id.get(node["id"], _empty_metrics())
+        state = metrics.get("state") or {}
+        status = state.get("status") or "unvisited"
+        item_style = {"color": _status_color(status)}
+        if _should_glow(state, metrics):
+            item_style.update({"shadowBlur": 15, "shadowColor": "rgba(239, 68, 68, 0.8)"})
         graph_nodes.append(
             {
                 "id": node["id"],
                 "name": node.get("title") or node.get("name") or node["id"],
-                "symbolSize": 28 + min(28, int(state.get("seen_count") or 0) * 4),
-                "value": int(state.get("seen_count") or 0),
-                "itemStyle": {"color": _status_color(state.get("status") or "unvisited")},
-                "category": _status_label(state.get("status") or "unvisited"),
+                "symbolSize": 28 + min(36, metrics["question_count"] * 4 + metrics["mistake_count"] * 3),
+                "value": metrics["question_count"],
+                "seen_count": metrics["seen_count"],
+                "question_count": metrics["question_count"],
+                "mistake_count": metrics["mistake_count"],
+                "last_activity_days": _format_days_ago(metrics.get("last_activity_days")),
+                "itemStyle": item_style,
+                "category": PROFILE_CATEGORY_LABELS.index(_status_label(status)),
             }
         )
         parent_id = node.get("parent_id") or ""
         if parent_id and parent_id in by_id:
             graph_links.append({"source": parent_id, "target": node["id"]})
-    return {"tree": tree_root, "nodes": graph_nodes, "links": graph_links}
+    return {
+        "tree": tree_root,
+        "nodes": graph_nodes,
+        "links": graph_links,
+        "categories": [{"name": item} for item in PROFILE_CATEGORY_LABELS],
+        "colors": PROFILE_CATEGORY_COLORS,
+    }
 
 
 def _tree_option(graph: dict) -> dict:
     return {
-        "tooltip": {"trigger": "item", "triggerOn": "mousemove"},
+        "tooltip": {
+            "trigger": "item",
+            "triggerOn": "mousemove",
+            "formatter": "{b}<br/>累计提问：{@question_count}<br/>累计错题：{@mistake_count}<br/>上次学习：{@last_activity_days}",
+        },
+        "color": graph.get("colors", PROFILE_CATEGORY_COLORS),
+        "legend": [{"show": True, "data": PROFILE_CATEGORY_LABELS, "orient": "vertical", "right": 8, "top": "middle"}],
         "toolbox": {"feature": {"saveAsImage": {}}},
         "series": [
             {
                 "type": "tree",
                 "data": [graph["tree"]],
-                "top": "5%",
-                "left": "8%",
-                "bottom": "5%",
-                "right": "18%",
+                "categories": graph.get("categories", [{"name": item} for item in PROFILE_CATEGORY_LABELS]),
+                "layout": "orthogonal",
+                "orient": "TB",
+                "roam": True,
+                "top": "10%",
+                "left": "10%",
+                "bottom": "10%",
+                "right": "10%",
                 "symbolSize": 10,
-                "label": {"position": "left", "verticalAlign": "middle", "align": "right", "fontSize": 12},
-                "leaves": {"label": {"position": "right", "verticalAlign": "middle", "align": "left"}},
+                "label": {"position": "top", "verticalAlign": "middle", "align": "center", "fontSize": 12},
+                "leaves": {"label": {"position": "bottom", "verticalAlign": "middle", "align": "center"}},
                 "expandAndCollapse": True,
                 "initialTreeDepth": 2,
                 "animationDuration": 300,
@@ -687,18 +980,26 @@ def _tree_option(graph: dict) -> dict:
 
 def _mindmap_option(graph: dict) -> dict:
     return {
-        "tooltip": {"trigger": "item", "triggerOn": "mousemove"},
+        "tooltip": {
+            "trigger": "item",
+            "triggerOn": "mousemove",
+            "formatter": "{b}<br/>累计提问：{@question_count}<br/>累计错题：{@mistake_count}<br/>上次学习：{@last_activity_days}",
+        },
+        "color": graph.get("colors", PROFILE_CATEGORY_COLORS),
+        "legend": [{"show": True, "data": PROFILE_CATEGORY_LABELS, "orient": "vertical", "right": 8, "top": "middle"}],
         "toolbox": {"feature": {"saveAsImage": {}}},
         "series": [
             {
                 "type": "tree",
                 "data": [graph["tree"]],
+                "categories": graph.get("categories", [{"name": item} for item in PROFILE_CATEGORY_LABELS]),
                 "layout": "orthogonal",
                 "orient": "LR",
-                "top": "5%",
-                "left": "5%",
-                "bottom": "5%",
-                "right": "20%",
+                "roam": True,
+                "top": "10%",
+                "left": "10%",
+                "bottom": "10%",
+                "right": "10%",
                 "symbol": "circle",
                 "symbolSize": 12,
                 "label": {"position": "left", "verticalAlign": "middle", "align": "right"},
@@ -712,8 +1013,11 @@ def _mindmap_option(graph: dict) -> dict:
 
 def _network_option(graph: dict) -> dict:
     return {
-        "tooltip": {},
-        "legend": [{"data": ["未接触", "已接触", "需要复习", "已掌握"]}],
+        "tooltip": {
+            "formatter": "{b}<br/>累计提问：{@question_count}<br/>累计错题：{@mistake_count}<br/>上次学习：{@last_activity_days}",
+        },
+        "color": graph.get("colors", PROFILE_CATEGORY_COLORS),
+        "legend": [{"show": True, "data": PROFILE_CATEGORY_LABELS, "type": "scroll", "orient": "vertical", "right": 8, "top": "middle"}],
         "toolbox": {"feature": {"saveAsImage": {}}},
         "series": [
             {
@@ -721,11 +1025,15 @@ def _network_option(graph: dict) -> dict:
                 "layout": "force",
                 "roam": True,
                 "draggable": True,
+                "top": "10%",
+                "left": "10%",
+                "bottom": "10%",
+                "right": "10%",
                 "data": graph["nodes"],
                 "links": graph["links"],
-                "categories": [{"name": item} for item in ["未接触", "已接触", "需要复习", "已掌握"]],
+                "categories": graph.get("categories", [{"name": item} for item in PROFILE_CATEGORY_LABELS]),
                 "label": {"show": True, "position": "right"},
-                "force": {"repulsion": 180, "edgeLength": [60, 160]},
+                "force": {"repulsion": [300, 500], "edgeLength": [50, 150]},
                 "lineStyle": {"color": "source", "curveness": 0.18},
             }
         ],
@@ -733,14 +1041,7 @@ def _network_option(graph: dict) -> dict:
 
 
 def _status_color(status: str) -> str:
-    return {
-        "unvisited": "#8a94a6",
-        "seen": "#3b82f6",
-        "learning": "#f59e0b",
-        "weak": "#ef4444",
-        "mastered": "#10b981",
-        "proficient": "#059669",
-    }.get(status or "unvisited", "#8a94a6")
+    return PROFILE_CATEGORY_COLOR_BY_STATUS.get(status or "unvisited", "#8a94a6")
 
 
 def _node_id_from_table_event(current_rows: list[list[str]] | None, evt) -> str:
@@ -792,6 +1093,13 @@ def _breadcrumb_html(task, subject: str, current_node_id: str) -> str:
     return f"### 当前层级：{_esc(title)}"
 
 
+def _level_title_md(task, subject: str, current_node_id: str) -> str:
+    if current_node_id in {"", ROOT_NODE_ID, None}:
+        return f"### 当前科目：{_esc(subject)}"
+    node = get_node(task, subject, current_node_id) or {}
+    return f"### {_esc(node.get('title') or subject)}"
+
+
 def _level_overview_html(task, subject: str, current_node_id: str) -> str:
     debug_log("render_current_level_nodes", "START")
     t0 = time.time()
@@ -835,6 +1143,89 @@ def _question_count_for_node(task_id: str, node_id: str, path: list[str]) -> int
     return len(_questions_for_node(task_id, node_id, path))
 
 
+def _direct_question_count_for_node(task_id: str, node_id: str) -> int:
+    with connect_db() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS count FROM questions WHERE task_id = ? AND knowledge_node_id = ?",
+            (task_id, node_id),
+        ).fetchone()
+    return int(row["count"] or 0) if row else 0
+
+
+def render_question_set_view(task: object, subject: str, node_id: str | None, time_filter: str = "全部时间") -> str:
+    if not node_id:
+        return "<div class='node-detail-empty'>请选择一个知识点。</div>"
+    if not hasattr(task, "id"):
+        task = get_task(str(task)) or get_or_create_default_task()
+    node = get_node(task, subject, node_id)
+    if not node:
+        return "<div class='node-detail-empty'>未找到该知识点。</div>"
+    metrics = get_node_metrics(task, subject, node_id)
+    questions = _filter_rows_by_time(_questions_for_node(task.id, node_id, node.get("path") or []), time_filter)
+    mistakes = _filter_rows_by_time(_mistakes_for_node(task.id, node_id), time_filter, mistake_rows=True)
+    progress = int(max(0, min(100, float((metrics.get("state") or {}).get("mastery_score") or 0) * 100)))
+    status = _status_label(((metrics.get("state") or {}).get("status") or "unvisited"))
+    if (metrics.get("state") or {}).get("stale_review"):
+        status = f"{status}（需定期巩固）"
+    return f"""
+<div class="node-detail-panel question-set-panel">
+  <h2>{_esc(node.get('title'))}</h2>
+  <p class="muted">节点题集 / { _esc(time_filter or '全部时间') }</p>
+  <div class="stat-grid">
+    <span>状态<br><b>{_esc(status)}</b></span>
+    <span>当前提问<br><b>{metrics.get('direct_question_count', 0)}</b></span>
+    <span>累计提问<br><b>{metrics.get('question_count', 0)}</b></span>
+    <span>累计错题<br><b>{metrics.get('mistake_count', 0)}</b></span>
+  </div>
+  <div style="height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:12px 0 18px;">
+    <div style="height:100%;width:{progress}%;background:#10b981;"></div>
+  </div>
+  <h3>历史提问</h3>
+  {_question_set_cards(questions)}
+  <h3>错题记录</h3>
+  {_mistake_cards(mistakes)}
+</div>
+"""
+
+
+def _question_set_cards(rows: list[dict]) -> str:
+    if not rows:
+        return "<p class='muted'>当前筛选条件下没有历史提问。</p>"
+    cards = []
+    for row in rows:
+        cards.append(
+            f"""
+<details class="qa-card">
+  <summary>{_esc(row.get('created_at') or row.get('timestamp') or '-')} - {_esc(_summary(row.get('user_input') or '(图片问题)', 120))}</summary>
+  <p><b>题型：</b>{_esc(row.get('question_type') or '-')}　<b>难度：</b>{_esc(row.get('difficulty') or '-')}</p>
+  <pre>{_esc(row.get('assistant_answer') or '')}</pre>
+</details>
+"""
+        )
+    return "\n".join(cards)
+
+
+def _filter_rows_by_time(rows: list[dict], time_filter: str, mistake_rows: bool = False) -> list[dict]:
+    label = time_filter or "全部时间"
+    if label == "全部时间":
+        return rows
+    now = datetime.now()
+    result = []
+    for row in rows:
+        created_at = _parse_datetime(row.get("created_at") or row.get("timestamp"))
+        next_review_at = _parse_datetime(row.get("next_review_at"))
+        if label == "今天需复习":
+            if next_review_at and next_review_at.date() <= now.date():
+                result.append(row)
+        elif label == "最近3天出错":
+            if mistake_rows and created_at and now - created_at <= timedelta(days=3):
+                result.append(row)
+        elif label == "超过1周未看":
+            if created_at and now - created_at > timedelta(days=7):
+                result.append(row)
+    return result
+
+
 def _mistake_cards(rows: list[dict]) -> str:
     if not rows:
         return "<p class='muted'>这个知识点暂时没有错题。</p>"
@@ -864,6 +1255,79 @@ def _state_for(task_id: str, node_id: str) -> dict | None:
     return dict(row) if row else None
 
 
+def _effective_state_for(task_id: str, node_id: str) -> dict | None:
+    state = _state_for(task_id, node_id)
+    if not state:
+        return None
+    status = state.get("status") or "unvisited"
+    if status in {"mastered", "proficient"} and _is_review_due(state):
+        state = dict(state)
+        state["raw_status"] = status
+        state["status"] = "learning"
+        state["stale_review"] = True
+    return state
+
+
+def _is_review_due(state: dict) -> bool:
+    next_review = _parse_datetime(state.get("next_review_at"))
+    if next_review:
+        return datetime.now() > next_review
+    return _is_memory_stale(state)
+
+
+def _is_memory_stale(state: dict) -> bool:
+    last_text = state.get("last_reviewed_at") or state.get("updated_at") or state.get("last_seen_at")
+    last_time = _parse_datetime(last_text)
+    if not last_time:
+        return False
+    return datetime.now() - last_time > timedelta(days=MEMORY_DECAY_DAYS)
+
+
+def _parse_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    text = str(value).strip()
+    for parser in (
+        lambda item: datetime.fromisoformat(item),
+        lambda item: datetime.strptime(item, "%Y-%m-%d %H:%M:%S"),
+        lambda item: datetime.strptime(item, "%Y-%m-%d"),
+    ):
+        try:
+            return parser(text)
+        except ValueError:
+            continue
+    return None
+
+
+def _latest_datetime(*values: str | None) -> datetime | None:
+    parsed = [item for item in (_parse_datetime(value) for value in values) if item]
+    return max(parsed) if parsed else None
+
+
+def _days_ago(value: datetime | None) -> int | None:
+    if not value:
+        return None
+    return max(0, (datetime.now() - value).days)
+
+
+def _format_days_ago(days: int | None) -> str:
+    if days is None:
+        return "暂无记录"
+    if days == 0:
+        return "今天"
+    return f"{days}天前"
+
+
+def _should_glow(state: dict, totals: dict[str, int] | None = None) -> bool:
+    totals = totals or {}
+    return (
+        (state.get("status") or "") in {"learning", "weak"}
+        or int(state.get("mistake_count") or 0) > 0
+        or int(totals.get("mistake_count") or 0) > 0
+        or bool(state.get("stale_review"))
+    )
+
+
 def _questions_for_node(task_id: str, node_id: str, path: list[str]) -> list[dict]:
     path_prefix = json.dumps(path, ensure_ascii=False)[:-1]
     with connect_db() as conn:
@@ -885,6 +1349,23 @@ def _mistakes_for_node(task_id: str, node_id: str) -> list[dict]:
         rows = conn.execute(
             "SELECT * FROM mistake_book WHERE task_id = ? AND knowledge_node_id = ? ORDER BY created_at DESC",
             (task_id, node_id),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _mistakes_for_task(task_id: str, subject: str = "", keyword: str = "") -> list[dict]:
+    clauses = ["task_id = ?"]
+    params: list[str] = [task_id]
+    if subject:
+        clauses.append("subject LIKE ?")
+        params.append(f"%{subject}%")
+    if keyword:
+        clauses.append("(knowledge_path LIKE ? OR original_question LIKE ? OR mistake_reason LIKE ?)")
+        params.extend([f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"])
+    with connect_db() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM mistake_book WHERE {' AND '.join(clauses)} ORDER BY created_at DESC LIMIT 100",
+            params,
         ).fetchall()
     return [dict(row) for row in rows]
 
@@ -963,3 +1444,7 @@ def _esc(value) -> str:
     import html
 
     return html.escape(str(value or ""))
+
+
+def _xml_attr(value) -> str:
+    return xml_escape(str(value or ""), {'"': "&quot;", "'": "&apos;"})

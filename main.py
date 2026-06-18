@@ -43,11 +43,14 @@ from learning_tasks.task_store import get_or_create_default_task, get_task, init
 from learning_tasks.task_ui import (
     active_task_label,
     create_task_from_form,
+    export_mindmap_markdown,
+    export_mindmap_opml,
     generate_quiz_ui,
     grade_quiz_ui,
     manual_add_mistake_ui,
     mark_profile_loaded,
     initialize_knowledge_drilldown,
+    on_knowledge_node_double_click,
     on_enter_child_node,
     on_back_to_parent,
     on_knowledge_node_click,
@@ -56,10 +59,12 @@ from learning_tasks.task_ui import (
     refresh_task_dropdown,
     render_node_detail_ui,
     render_mistakes_ui,
+    render_mistakes_ui_filtered,
     render_profile_chart,
     render_profile_chart_if_loaded,
     render_profile_ui,
     render_review_plan_ui,
+    render_selected_node_question_set,
     render_task_list,
     reset_profile_loaded,
     search_history_ui,
@@ -92,6 +97,31 @@ LATEX_DELIMITERS = [
 
 DEBUG_DISABLE_PROFILE_EVENTS = False
 # DEBUG_DISABLE_PROFILE_EVENTS = True
+
+KNOWLEDGE_DBLCLICK_JS = """
+() => {
+  if (window.__knowledgeDblClickBridgeInstalled) return;
+  window.__knowledgeDblClickBridgeInstalled = true;
+  document.addEventListener("dblclick", function(event) {
+    var tableRoot = event.target.closest("#knowledge-node-table");
+    if (!tableRoot) return;
+    var row = event.target.closest("tbody tr");
+    if (!row) return;
+    var rows = Array.prototype.slice.call(row.parentElement.querySelectorAll("tr"));
+    var rowIndex = rows.indexOf(row);
+    if (rowIndex < 0) return;
+    var inputWrap = document.querySelector("#profile-dblclick-row");
+    var input = inputWrap && inputWrap.querySelector("input, textarea");
+    var buttonWrap = document.querySelector("#profile-dblclick-btn");
+    var button = buttonWrap && buttonWrap.querySelector("button");
+    if (!input || !button) return;
+    input.value = String(rowIndex);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    setTimeout(function() { button.click(); }, 0);
+  }, true);
+}
+"""
 
 def find_available_port(start_port: int, max_attempts: int = 20) -> int:
     """Find an available local TCP port, starting from the preferred port."""
@@ -625,23 +655,32 @@ def build_ui_v2() -> gr.Blocks:
                         value="树状图",
                     )
                     profile_refresh_btn = gr.Button("刷新画像")
+                    profile_export_btn = gr.DownloadButton("导出思维导图 (Markdown)")
+                    profile_export_opml_btn = gr.DownloadButton("导出思维导图 (OPML/XMind)")
                 profile_chart = gr.HTML("<div class='node-detail-empty'>请点击“刷新画像”加载图谱。</div>")
                 with gr.Row():
                     with gr.Column(scale=2):
-                        with gr.Row():
-                            back_parent_btn = gr.Button("<", elem_classes=["back-button"], interactive=False, min_width=36, scale=0)
-                            enter_child_btn = gr.Button("进入", elem_classes=["back-button"], interactive=False, min_width=54, scale=0)
-                            profile_breadcrumb = gr.Markdown("### 当前层级：-")
+                        back_parent_btn = gr.Button("<", elem_id="profile-hidden-back", elem_classes=["hidden-bridge"], interactive=False, min_width=36, scale=0)
+                        enter_child_btn = gr.Button("进入", elem_id="profile-hidden-enter", elem_classes=["hidden-bridge"], interactive=False, min_width=54, scale=0)
+                        profile_dblclick_row = gr.Textbox(value="", elem_id="profile-dblclick-row", elem_classes=["hidden-bridge"], show_label=False, container=False)
+                        profile_dblclick_btn = gr.Button("双击下钻", elem_id="profile-dblclick-btn", elem_classes=["hidden-bridge"])
+                        profile_breadcrumb = gr.Markdown("### 当前科目：")
                         profile_node_selector = gr.Dataframe(
-                            label="当前层级知识点",
-                            headers=["知识点", "状态", "提问数"],
+                            label="",
+                            headers=["知识点", "状态", "累计提问"],
                             datatype=["str", "str", "str"],
                             value=[],
                             interactive=False,
                             wrap=True,
+                            elem_id="knowledge-node-table",
                             elem_classes=["knowledge-node-table"],
                         )
                     with gr.Column(scale=1):
+                        question_time_filter = gr.Dropdown(
+                            label="题集时间筛选",
+                            choices=["全部时间", "今天需复习", "最近3天出错", "超过1周未看"],
+                            value="全部时间",
+                        )
                         profile_node_detail = gr.HTML("<div class='node-detail-empty'>请选择一个知识点。</div>")
                 gr.Markdown("### 上传我的笔记 / 知识框架")
                 with gr.Row():
@@ -662,6 +701,11 @@ def build_ui_v2() -> gr.Blocks:
                 with gr.Row():
                     mistake_subject = gr.Textbox(label="科目过滤", placeholder="可留空")
                     mistake_keyword = gr.Textbox(label="关键词 / 知识点过滤", placeholder="例如：矩阵乘法")
+                    mistake_time_filter = gr.Dropdown(
+                        label="时间筛选",
+                        choices=["全部时间", "今天需复习", "最近3天出错", "超过1周未看"],
+                        value="全部时间",
+                    )
                     mistake_refresh_btn = gr.Button("刷新错题本")
                 mistake_output = gr.Markdown()
                 gr.Markdown("### 手动添加错题")
@@ -826,6 +870,21 @@ def build_ui_v2() -> gr.Blocks:
                     enter_child_btn,
                 ],
             )
+            profile_dblclick_btn.click(
+                fn=on_knowledge_node_double_click,
+                inputs=[profile_dblclick_row, profile_node_rows_state, current_node_id_state, nav_stack_state, task_dropdown, profile_subject],
+                outputs=[
+                    current_node_id_state,
+                    nav_stack_state,
+                    selected_node_id_state,
+                    profile_node_rows_state,
+                    profile_node_selector,
+                    profile_breadcrumb,
+                    profile_node_detail,
+                    back_parent_btn,
+                    enter_child_btn,
+                ],
+            )
             back_parent_btn.click(
                 fn=on_back_to_parent,
                 inputs=[current_node_id_state, nav_stack_state, task_dropdown, profile_subject],
@@ -846,8 +905,23 @@ def build_ui_v2() -> gr.Blocks:
                 inputs=[task_dropdown, notes_files, notes_text],
                 outputs=[notes_result],
             )
+            profile_export_btn.click(
+                fn=export_mindmap_markdown,
+                inputs=[task_dropdown, profile_subject],
+                outputs=[profile_export_btn],
+            )
+            profile_export_opml_btn.click(
+                fn=export_mindmap_opml,
+                inputs=[task_dropdown, profile_subject],
+                outputs=[profile_export_opml_btn],
+            )
+            question_time_filter.change(
+                fn=render_selected_node_question_set,
+                inputs=[task_dropdown, profile_subject, selected_node_id_state, question_time_filter],
+                outputs=[profile_node_detail],
+            )
 
-        mistake_refresh_btn.click(fn=render_mistakes_ui, inputs=[task_dropdown, mistake_subject, mistake_keyword], outputs=[mistake_output])
+        mistake_refresh_btn.click(fn=render_mistakes_ui_filtered, inputs=[task_dropdown, mistake_subject, mistake_keyword, mistake_time_filter], outputs=[mistake_output])
         manual_add_btn.click(fn=manual_add_mistake_ui, inputs=[task_dropdown, mistake_subject, manual_image, manual_question, manual_reason], outputs=[mistake_output])
         review_refresh_btn.click(fn=render_review_plan_ui, inputs=[task_dropdown], outputs=[review_output])
         history_search_btn.click(fn=search_history_ui, inputs=[task_dropdown, history_keyword], outputs=[history_output])
@@ -887,6 +961,7 @@ def build_ui_v2() -> gr.Blocks:
             outputs=[answer, debug_output],
             cancels=[submit_event, enter_event],
         )
+        demo.load(fn=None, inputs=[], outputs=[], js=KNOWLEDGE_DBLCLICK_JS)
     return demo
 
 

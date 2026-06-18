@@ -2,7 +2,7 @@
   "task_id": "task_676cec08b012",
   "task_name": "2027考研机械",
   "subject": "线性代数",
-  "updated_at": "2026-06-17T16:34:59",
+  "updated_at": "2026-06-18T17:47:09",
   "nodes": [
     {
       "node_id": "la_01",
@@ -32,6 +32,24 @@
       "source": "syllabus"
     },
     {
+      "node_id": "kn_c5fee76f7c14",
+      "title": "齐次线性方程组",
+      "path": [
+        "线性代数",
+        "线性方程组",
+        "齐次线性方程组"
+      ],
+      "parent_id": "la_04",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "user_note"
+    },
+    {
       "node_id": "la_01_01",
       "title": "行列式定义",
       "path": [
@@ -50,6 +68,24 @@
       "source": "syllabus"
     },
     {
+      "node_id": "kn_9517e313320e",
+      "title": "非齐次线性方程组",
+      "path": [
+        "线性代数",
+        "线性方程组",
+        "非齐次线性方程组"
+      ],
+      "parent_id": "la_04",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "user_note"
+    },
+    {
       "node_id": "la_01_02",
       "title": "行列式性质",
       "path": [
@@ -66,6 +102,24 @@
       "last_touched_at": "",
       "summary": "",
       "source": "syllabus"
+    },
+    {
+      "node_id": "kn_f27d63abb678",
+      "title": "解的性质",
+      "path": [
+        "线性代数",
+        "线性方程组",
+        "解的性质"
+      ],
+      "parent_id": "la_04",
+      "children": [],
+      "basic_framework": [],
+      "mastery_status": "未接触",
+      "question_count": 0,
+      "wrong_question_count": 0,
+      "last_touched_at": "",
+      "summary": "",
+      "source": "user_note"
     },
     {
       "node_id": "la_01_03",
@@ -354,8 +408,16 @@
         "线性方程组"
       ],
       "parent_id": "",
-      "children": [],
-      "basic_framework": [],
+      "children": [
+        "kn_c5fee76f7c14",
+        "kn_9517e313320e",
+        "kn_f27d63abb678"
+      ],
+      "basic_framework": [
+        "齐次线性方程组",
+        "非齐次线性方程组",
+        "解的性质"
+      ],
       "mastery_status": "未接触",
       "question_count": 0,
       "wrong_question_count": 0,

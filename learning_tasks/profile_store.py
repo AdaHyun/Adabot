@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta
 from typing import Any
 
 from .task_store import connect_db, init_db, new_id, now_text
@@ -98,6 +99,7 @@ def save_knowledge_event(question_id: str, event: dict[str, Any]) -> str:
 def update_knowledge_state(task_id: str, event: dict[str, Any]) -> None:
     node_id = event.get("knowledge_node_id") or "general"
     stamp = now_text()
+    next_review_at = _next_review_time(stamp, days=7)
     weak = bool(event.get("weakness_signal"))
     mistake = bool(event.get("should_add_to_mistake_book"))
     with connect_db() as conn:
@@ -112,8 +114,8 @@ def update_knowledge_state(task_id: str, event: dict[str, Any]) -> None:
                 INSERT INTO knowledge_state
                 (id, task_id, subject, knowledge_node_id, knowledge_path, status,
                  seen_count, weak_count, mistake_count, mastery_score,
-                 last_seen_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 first_accessed_at, last_seen_at, next_review_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     new_id("ks"),
@@ -127,6 +129,8 @@ def update_knowledge_state(task_id: str, event: dict[str, Any]) -> None:
                     1 if mistake else 0,
                     0.0,
                     stamp,
+                    stamp,
+                    next_review_at,
                     stamp,
                 ),
             )
@@ -147,7 +151,7 @@ def update_knowledge_state(task_id: str, event: dict[str, Any]) -> None:
             """
             UPDATE knowledge_state
             SET subject = ?, knowledge_path = ?, status = ?, seen_count = ?,
-                weak_count = ?, mistake_count = ?, last_seen_at = ?, updated_at = ?
+                weak_count = ?, mistake_count = ?, last_seen_at = ?, next_review_at = ?, updated_at = ?
             WHERE task_id = ? AND knowledge_node_id = ?
             """,
             (
@@ -158,6 +162,7 @@ def update_knowledge_state(task_id: str, event: dict[str, Any]) -> None:
                 weak_count,
                 mistake_count,
                 stamp,
+                next_review_at,
                 stamp,
                 task_id,
                 node_id,
@@ -188,10 +193,10 @@ def mark_review(task_id: str, knowledge_node_id: str, result: str, notes: str = 
             conn.execute(
                 """
                 UPDATE knowledge_state
-                SET mastery_score = ?, review_count = ?, status = ?, last_reviewed_at = ?, updated_at = ?
+                SET mastery_score = ?, review_count = ?, status = ?, last_reviewed_at = ?, next_review_at = ?, updated_at = ?
                 WHERE task_id = ? AND knowledge_node_id = ?
                 """,
-                (score, int(row["review_count"] or 0) + 1, status, stamp, stamp, task_id, knowledge_node_id),
+                (score, int(row["review_count"] or 0) + 1, status, stamp, _next_review_time(stamp, days=14), stamp, task_id, knowledge_node_id),
             )
 
 
@@ -231,3 +236,11 @@ def set_knowledge_status(task_id: str, knowledge_node_id: str, status: str) -> N
                 "UPDATE knowledge_state SET status = ?, updated_at = ? WHERE task_id = ? AND knowledge_node_id = ?",
                 (status, stamp, task_id, knowledge_node_id),
             )
+
+
+def _next_review_time(stamp: str, days: int) -> str:
+    try:
+        base = datetime.fromisoformat(stamp)
+    except ValueError:
+        base = datetime.now()
+    return (base + timedelta(days=days)).isoformat(timespec="seconds")

@@ -1,9 +1,103 @@
-subject: 英语
-syllabus_id: kaoyan_english
+subject: 考研英语
+syllabus_id: kaoyan_english_liuxiaoyan
 nodes:
-  - {id: ke_01, name: 词汇}
-  - {id: ke_02, name: 长难句}
-  - {id: ke_03, name: 阅读理解}
-  - {id: ke_04, name: 翻译}
-  - {id: ke_05, name: 小作文}
-  - {id: ke_06, name: 大作文}
+  - id: kye_01
+    name: 1. 基础夯实（基石）
+    children:
+      - id: kye_01_01
+        name: 词汇突破
+        children:
+          - id: kye_01_01_01
+            name: 词根词缀分析
+          - id: kye_01_01_02
+            name: 熟词生义
+      - id: kye_01_02
+        name: 语法与长难句
+        children:
+          - id: kye_01_02_01
+            name: 寻找核心主干
+          - id: kye_01_02_02
+            name: 剥离修饰成分
+          - id: kye_01_02_03
+            name: 特殊句式
+  - id: kye_02
+    name: 2. 阅读理解（得分核心）
+    children:
+      - id: kye_02_01
+        name: 细节题
+        children:
+          - id: kye_02_01_01
+            name: 精确定位
+          - id: kye_02_01_02
+            name: 同义替换
+      - id: kye_02_02
+        name: 例证题
+        children:
+          - id: kye_02_02_01
+            name: 区分论点与论据
+      - id: kye_02_03
+        name: 态度题
+        children:
+          - id: kye_02_03_01
+            name: 褒贬词汇判定
+      - id: kye_02_04
+        name: 主旨题
+        children:
+          - id: kye_02_04_01
+            name: 首尾段宏观把握
+      - id: kye_02_05
+        name: 推理题
+        children:
+          - id: kye_02_05_01
+            name: 基于事实不主观臆断
+      - id: kye_02_06
+        name: 词汇题
+        children:
+          - id: kye_02_06_01
+            name: 上下文逻辑线索
+  - id: kye_03
+    name: 3. 写作套路（输出转化）
+    children:
+      - id: kye_03_01
+        name: 小作文
+        children:
+          - id: kye_03_01_01
+            name: 书信通知格式
+          - id: kye_03_01_02
+            name: 语域色彩
+      - id: kye_03_02
+        name: 大作文
+        children:
+          - id: kye_03_02_01
+            name: 图画/图表描述
+          - id: kye_03_02_02
+            name: 现象剖析
+          - id: kye_03_02_03
+            name: 观点论证
+  - id: kye_04
+    name: 4. 翻译技巧
+    children:
+      - id: kye_04_01
+        name: 拆分与组合
+        children:
+          - id: kye_04_01_01
+            name: 定语从句前置/后置处理
+          - id: kye_04_01_02
+            name: 被动转主动
+  - id: kye_05
+    name: 5. 完形与新题型
+    children:
+      - id: kye_05_01
+        name: 完形填空
+        children:
+          - id: kye_05_01_01
+            name: 逻辑关联词
+          - id: kye_05_01_02
+            name: 复现结构
+      - id: kye_05_02
+        name: 新题型
+        children:
+          - id: kye_05_02_01
+            name: 七选五/排序题
+          - id: kye_05_02_02
+            name: 代词指代与衔接标记
