@@ -385,10 +385,16 @@ def on_knowledge_node_click(
 
     if not node_id:
         debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s empty")
+        rows = _current_level_rows(task, subject, current_node_id)
         return (
+            current_node_id,
+            stack,
             "",
+            rows,
+            _table_update(rows),
             _level_title_md(task, subject, current_node_id),
             _level_overview_html(task, subject, current_node_id),
+            gr.update(interactive=bool(stack)),
             gr.update(interactive=False),
         )
 
@@ -396,29 +402,48 @@ def on_knowledge_node_click(
 
     if not node:
         debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s missing node={node_id}")
+        rows = _current_level_rows(task, subject, current_node_id)
         return (
+            current_node_id,
+            stack,
             "",
+            rows,
+            _table_update(rows),
             _level_title_md(task, subject, current_node_id),
             "<div class='node-detail-empty'>未找到该知识点。</div>",
+            gr.update(interactive=bool(stack)),
             gr.update(interactive=False),
         )
 
     children = list_children(task, subject, node_id)
 
     if children:
-        debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s selected parent node={node_id}")
+        stack.append(current_node_id)
+        rows = _current_level_rows(task, subject, node_id)
+        debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s enter parent node={node_id}")
         return (
             node_id,
-            _level_title_md(task, subject, current_node_id),
+            stack,
+            "",
+            rows,
+            _table_update(rows),
+            _level_title_md(task, subject, node_id),
             _level_overview_html(task, subject, node_id),
             gr.update(interactive=True),
+            gr.update(interactive=False),
         )
 
     debug_log("on_knowledge_node_click", f"END elapsed={time.time() - t0:.2f}s detail node={node_id}")
+    rows = list(current_rows or [])
     return (
+        current_node_id,
+        stack,
         node_id,
+        rows,
+        gr.update(),
         _level_title_md(task, subject, current_node_id),
         render_question_set_view(task, subject, node_id),
+        gr.update(interactive=bool(stack)),
         gr.update(interactive=False),
     )
 

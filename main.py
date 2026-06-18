@@ -702,7 +702,7 @@ def build_ui_v2() -> gr.Blocks:
                 profile_chart = gr.HTML("<div class='node-detail-empty'>请点击“刷新画像”加载图谱。</div>")
                 with gr.Row():
                     with gr.Column(scale=2):
-                        back_parent_btn = gr.Button("<", elem_id="profile-hidden-back", elem_classes=["hidden-bridge"], interactive=False, min_width=36, scale=0)
+                        back_parent_btn = gr.Button("← 返回上一级", elem_classes=["back-button"], interactive=False, min_width=120, scale=0)
                         enter_child_btn = gr.Button("进入", elem_id="profile-hidden-enter", elem_classes=["hidden-bridge"], interactive=False, min_width=54, scale=0)
                         profile_dblclick_row = gr.Textbox(value="", elem_id="profile-dblclick-row", elem_classes=["hidden-bridge"], show_label=False, container=False)
                         profile_dblclick_btn = gr.Button("双击下钻", elem_id="profile-dblclick-btn", elem_classes=["hidden-bridge"])
@@ -891,9 +891,14 @@ def build_ui_v2() -> gr.Blocks:
                 fn=on_knowledge_node_click,
                 inputs=[profile_node_rows_state, current_node_id_state, nav_stack_state, task_dropdown, profile_subject],
                 outputs=[
+                    current_node_id_state,
+                    nav_stack_state,
                     selected_node_id_state,
+                    profile_node_rows_state,
+                    profile_node_selector,
                     profile_breadcrumb,
                     profile_node_detail,
+                    back_parent_btn,
                     enter_child_btn,
                 ],
             )
