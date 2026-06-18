@@ -102,23 +102,65 @@ KNOWLEDGE_DBLCLICK_JS = """
 () => {
   if (window.__knowledgeDblClickBridgeInstalled) return;
   window.__knowledgeDblClickBridgeInstalled = true;
+
+  function findInPath(event, predicate) {
+    var path = event.composedPath ? event.composedPath() : [];
+    for (var i = 0; i < path.length; i++) {
+      var item = path[i];
+      if (item && item.nodeType === 1 && predicate(item)) return item;
+    }
+    return null;
+  }
+
+  function setNativeValue(el, value) {
+    var proto = Object.getPrototypeOf(el);
+    var descriptor = proto && Object.getOwnPropertyDescriptor(proto, "value");
+    if (descriptor && descriptor.set) descriptor.set.call(el, value);
+    else el.value = value;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function clickBridgeButton() {
+    var wrap = document.querySelector("#profile-dblclick-btn");
+    var btn = wrap && (wrap.querySelector("button") || wrap);
+    if (!btn) return false;
+    btn.click();
+    return true;
+  }
+
   document.addEventListener("dblclick", function(event) {
-    var tableRoot = event.target.closest("#knowledge-node-table");
+    var target = event.target;
+    var tableRoot = target.closest && target.closest("#knowledge-node-table");
+    if (!tableRoot) {
+      tableRoot = findInPath(event, function(el) {
+        return el.id === "knowledge-node-table" || (el.classList && el.classList.contains("knowledge-node-table"));
+      });
+    }
     if (!tableRoot) return;
-    var row = event.target.closest("tbody tr");
+
+    var row = target.closest && target.closest("tbody tr, tr, [role='row']");
+    if (!row || !tableRoot.contains(row)) {
+      row = findInPath(event, function(el) {
+        return tableRoot.contains(el) && (el.matches("tbody tr, tr") || el.getAttribute("role") === "row");
+      });
+    }
     if (!row) return;
-    var rows = Array.prototype.slice.call(row.parentElement.querySelectorAll("tr"));
+
+    var rows = Array.prototype.slice.call(tableRoot.querySelectorAll("tbody tr"));
+    if (!rows.length) {
+      rows = Array.prototype.slice.call(tableRoot.querySelectorAll("[role='row']")).filter(function(item) {
+        return item.querySelector("[role='gridcell'], td");
+      });
+    }
     var rowIndex = rows.indexOf(row);
     if (rowIndex < 0) return;
+
     var inputWrap = document.querySelector("#profile-dblclick-row");
     var input = inputWrap && inputWrap.querySelector("input, textarea");
-    var buttonWrap = document.querySelector("#profile-dblclick-btn");
-    var button = buttonWrap && buttonWrap.querySelector("button");
-    if (!input || !button) return;
-    input.value = String(rowIndex);
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    setTimeout(function() { button.click(); }, 0);
+    if (!input) return;
+    setNativeValue(input, String(rowIndex));
+    setTimeout(clickBridgeButton, 50);
   }, true);
 }
 """

@@ -290,6 +290,25 @@ def render_profile_chart(choice: str, subject: str, view_label: str) -> str:
                 var chartDom = document.getElementById('main');
                 var myChart = echarts.init(chartDom);
                 var option = {option_json};
+                option.tooltip = option.tooltip || {{}};
+                option.tooltip.formatter = function(params) {{
+                    var data = params && params.data ? params.data : {{}};
+                    var name = (params && params.name) || data.name || '';
+                    var questionCount = data.question_count;
+                    var mistakeCount = data.mistake_count;
+                    var lastActivity = data.last_activity_days;
+                    if (questionCount === undefined || questionCount === null) questionCount = 0;
+                    if (mistakeCount === undefined || mistakeCount === null) mistakeCount = 0;
+                    if (!lastActivity) lastActivity = '暂无记录';
+                    function esc(value) {{
+                        return String(value).replace(/[&<>"']/g, function(ch) {{
+                            return ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}})[ch];
+                        }});
+                    }}
+                    return esc(name) + '<br/>累计提问：' + esc(questionCount)
+                        + '<br/>累计错题：' + esc(mistakeCount)
+                        + '<br/>上次学习：' + esc(lastActivity);
+                }};
                 myChart.setOption(option);
                 
                 // 监听窗口尺寸变化
